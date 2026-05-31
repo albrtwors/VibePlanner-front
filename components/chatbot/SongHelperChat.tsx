@@ -2,6 +2,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { notify } from "@/utils/toast";
+import { endpoint } from "@/consts/backEndpoint";
 
 interface SongStructure {
     name: string;
@@ -48,7 +49,7 @@ export default function VibeHelperChat({ closeChat, onApplyStructure }: VibeHelp
         setMessages((prev) => [...prev, { id: loadingId, sender: "bot", text: "", isLoading: true }]);
 
         try {
-            const response = await fetch("http://localhost:5000/api/songs/generate-ia", {
+            const response = await fetch(`${endpoint}api/songs/generate-ia`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ prompt: promptText }),

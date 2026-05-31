@@ -1,0 +1,1 @@
+export const endpoint = "https://vibe-planner-back.vercel.app/"
