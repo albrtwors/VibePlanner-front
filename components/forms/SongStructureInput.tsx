@@ -21,7 +21,7 @@ export default function SongStructureInput({ value, onChange, required = false }
             <textarea
                 required={required}
                 rows={11}
-                placeholder={`[INTRO]\n(Instrumental)\n\n[VERSO 1]\nElla durmió al calor de las masas...\n\n[CORO]\nDe aquel amor de música ligera...`}
+                placeholder={`...`}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 className="w-full px-4 py-4 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-mono leading-relaxed resize-y shadow-inner"

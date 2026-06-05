@@ -87,17 +87,17 @@ export default function CreateSongPage() {
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900/30 p-6 sm:p-10 rounded-2xl border border-slate-800/60 backdrop-blur-md shadow-2xl">
                     <div className="flex flex-col gap-2 md:col-span-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Título <span className="text-indigo-400">*</span></label>
-                        <input type="text" required placeholder="Ej. De Música Ligera..." value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 transition-all" />
+                        <input type="text" required placeholder="..." value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 transition-all" />
                     </div>
 
                     <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Autor / Artista <span className="text-indigo-400">*</span></label>
-                        <input type="text" required placeholder="Ej. Soda Stereo" value={author} onChange={(e) => setAuthor(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 transition-all" />
+                        <input type="text" required placeholder="..." value={author} onChange={(e) => setAuthor(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 transition-all" />
                     </div>
 
                     <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Género <span className="text-slate-600 font-normal lowercase">(opcional)</span></label>
-                        <input type="text" placeholder="Ej. Rock" value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 transition-all" />
+                        <input type="text" placeholder="..." value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 transition-all" />
                     </div>
 
                     <SongStructureInput value={structureText} onChange={setStructureText} required />
