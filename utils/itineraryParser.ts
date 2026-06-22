@@ -25,7 +25,8 @@ export function parseTextToItinerary(text: string): ItineraryBlock[] {
     const lineRegex = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])\s*-\s*(.*)$/;
 
     lines.forEach((line) => {
-        const cleanLine = line.strip ? (line as any).strip() : line.trim();
+        // SOLUCIÓN: Quitamos el condicional innecesario y el 'as any'
+        const cleanLine = line.trim();
         if (!cleanLine) return;
 
         const match = cleanLine.match(lineRegex);
