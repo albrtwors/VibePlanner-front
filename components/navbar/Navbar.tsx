@@ -29,49 +29,68 @@ export default function Navbar() {
                         <Link
                             href="/dashboard"
                             className={`rounded-lg px-3 py-2 transition-all ${isActive("/dashboard")
-                                    ? "bg-slate-900 text-indigo-400 font-semibold border-b-2 border-indigo-500/50 rounded-b-none"
-                                    : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                                ? "bg-slate-900 text-indigo-400 font-semibold border-b-2 border-indigo-500/50 rounded-b-none"
+                                : "text-slate-400 hover:bg-slate-900 hover:text-white"
                                 }`}
                         >
                             Dashboard
                         </Link>
 
                         <Link
-                            href="/eventos"
-                            className={`rounded-lg px-3 py-2 transition-all ${isActive("/eventos")
-                                    ? "bg-slate-900 text-indigo-400 font-semibold border-b-2 border-indigo-500/50 rounded-b-none"
-                                    : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                            href="/events"
+                            className={`rounded-lg px-3 py-2 transition-all ${isActive("/events")
+                                ? "bg-slate-900 text-indigo-400 font-semibold border-b-2 border-indigo-500/50 rounded-b-none"
+                                : "text-slate-400 hover:bg-slate-900 hover:text-white"
                                 }`}
                         >
                             Eventos
                         </Link>
-
+                        <Link
+                            href="/expenses"
+                            className={`rounded-lg px-3 py-2 transition-all ${isActive("/expenses")
+                                ? "bg-slate-900 text-indigo-400 font-semibold border-b-2 border-indigo-500/50 rounded-b-none"
+                                : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                                }`}
+                        >
+                            Gastos
+                        </Link>
                         <Link
                             href="/songs"
                             className={`rounded-lg px-3 py-2 transition-all ${isActive("/songs")
-                                    ? "bg-slate-900 text-indigo-400 font-semibold border-b-2 border-indigo-500/50 rounded-b-none"
-                                    : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                                ? "bg-slate-900 text-indigo-400 font-semibold border-b-2 border-indigo-500/50 rounded-b-none"
+                                : "text-slate-400 hover:bg-slate-900 hover:text-white"
                                 }`}
                         >
                             Canciones
                         </Link>
 
                         <Link
-                            href="/cancioneros"
-                            className={`rounded-lg px-3 py-2 transition-all ${isActive("/cancioneros")
-                                    ? "bg-slate-900 text-indigo-400 font-semibold border-b-2 border-indigo-500/50 rounded-b-none"
-                                    : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                            href="/files"
+                            className={`rounded-lg px-3 py-2 transition-all ${isActive("/files")
+                                ? "bg-slate-900 text-indigo-400 font-semibold border-b-2 border-indigo-500/50 rounded-b-none"
+                                : "text-slate-400 hover:bg-slate-900 hover:text-white"
                                 }`}
                         >
                             Repertorio
                         </Link>
 
+
+                        <Link
+                            href="/inventory"
+                            className={`rounded-lg px-3 py-2 transition-all ${isActive("/inventory")
+                                ? "bg-slate-900 text-indigo-400 font-semibold border-b-2 border-indigo-500/50 rounded-b-none"
+                                : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                                }`}
+                        >
+                            Inventario
+                        </Link>
+
                         {/* Botón de VibeAI con remarcado especial si está activo */}
                         <Link
-                            href="/ia-assistant"
-                            className={`rounded-lg px-3 py-2 transition-all flex items-center gap-1.5 border ${isActive("/ia-assistant")
-                                    ? "text-indigo-300 bg-indigo-500/20 border-indigo-400 shadow-md shadow-indigo-500/10 font-semibold"
-                                    : "text-indigo-400 bg-indigo-500/5 border-indigo-500/10 hover:bg-indigo-500/10"
+                            href="/chatbot"
+                            className={`rounded-lg px-3 py-2 transition-all flex items-center gap-1.5 border ${isActive("/chatbot")
+                                ? "text-indigo-300 bg-indigo-500/20 border-indigo-400 shadow-md shadow-indigo-500/10 font-semibold"
+                                : "text-indigo-400 bg-indigo-500/5 border-indigo-500/10 hover:bg-indigo-500/10"
                                 }`}
                         >
                             <span className="relative flex h-2 w-2">
