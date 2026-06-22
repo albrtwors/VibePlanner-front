@@ -49,7 +49,7 @@ export default function CreateSongPage() {
         const finalJsonStructure = parseRawTextToStructure(structureText);
 
         try {
-            const response = await fetch(`${endpoint}/api/songs/`, {
+            const response = await fetch(`${endpoint}api/songs/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
