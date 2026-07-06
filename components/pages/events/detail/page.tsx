@@ -1,4 +1,3 @@
-// app/events/[id]/page.tsx
 "use client";
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
@@ -13,17 +12,17 @@ interface ItineraryBlock {
 }
 
 interface EventStaff {
-    id: number;
     email: string;
     role: string;
 }
 
+// CORREGIDO: Ajustado para mapear exactamente las claves que envía Flask
 interface EventInventory {
     item_id: number;
-    item_name: string;
-    category: string;
-    quantity_used: number;
-    unit_of_measure: string;
+    name: string;          // Flask envía "name"
+    category?: string;
+    quantity_used: number; // Flask envía "quantity_used"
+    unit: string;          // Flask envía "unit"
 }
 
 interface EventDetail {
@@ -32,9 +31,11 @@ interface EventDetail {
     date: string;
     time: string;
     target_audience: string;
+    guests_count: number;
+    estimated_logistic_budget: number;
     itinerary: ItineraryBlock[];
     staff: EventStaff[];
-    inventory_assignments: EventInventory[];
+    inventory: EventInventory[]; // CORREGIDO: Flask envía "inventory"
 }
 
 interface PageProps {
@@ -43,7 +44,7 @@ interface PageProps {
 
 export default function EventDetailPage({ params }: PageProps) {
     const router = useRouter();
-    const { id } = use(params); // Desempaquetar los params según las directrices de Next.js
+    const { id } = use(params);
 
     const [event, setEvent] = useState<EventDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -66,7 +67,6 @@ export default function EventDetailPage({ params }: PageProps) {
             .finally(() => setLoading(false));
     }, [id, router]);
 
-    // Evitar Hydration Mismatch en el formateo de la fecha
     const formattedDate = mounted && event
         ? new Date(event.date + "T00:00:00").toLocaleDateString("es-ES", {
             weekday: "long",
@@ -125,15 +125,16 @@ export default function EventDetailPage({ params }: PageProps) {
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Métricas Operacionales</span>
                     <div className="flex items-center gap-4 text-xs font-bold text-slate-300 mt-0.5">
                         <span>👤 {event.staff?.length || 0} Operadores</span>
-                        <span>📦 {event.inventory_assignments?.length || 0} Insumos</span>
+                        {/* CORREGIDO: Cambiado a event.inventory */}
+                        <span>📦 {event.inventory?.length || 0} Insumos</span>
                     </div>
                 </div>
             </div>
 
-            {/* SECCIONES DIVIDIDAS: IZQUIERDA (ITINERARIO) | DERECHA (LOGÍSTICA) */}
+            {/* SECCIONES DIVIDIDAS */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* COLUMNA ITINERARIO (2 COLUMNAS DE ANCHO) */}
+                {/* COLUMNA ITINERARIO */}
                 <div className="lg:col-span-2 flex flex-col gap-4 bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-xl shadow-black/10">
                     <div>
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Minuto a Minuto del Show</h3>
@@ -148,9 +149,7 @@ export default function EventDetailPage({ params }: PageProps) {
                         <div className="relative border-l-2 border-slate-800 pl-4 ml-2 flex flex-col gap-4 my-2">
                             {event.itinerary.map((block, index) => (
                                 <div key={index} className="relative group">
-                                    {/* Indicador de Línea de Tiempo */}
                                     <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-slate-900 group-hover:scale-125 transition-transform" />
-
                                     <div className="bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl flex items-center justify-between gap-4">
                                         <div className="flex items-center gap-3 min-w-0">
                                             <span className="font-mono text-xs font-bold text-indigo-400 shrink-0 bg-slate-900 border border-slate-800/60 px-2 py-0.5 rounded-md">
@@ -160,7 +159,6 @@ export default function EventDetailPage({ params }: PageProps) {
                                                 {block.name}
                                             </span>
                                         </div>
-
                                         <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 bg-slate-900 border border-slate-800/40 text-slate-400">
                                             {block.type === "song" ? "🎵 Tema" : block.type === "file" ? "📂 Setlist" : "⚙️ Protocolo"}
                                         </span>
@@ -171,21 +169,20 @@ export default function EventDetailPage({ params }: PageProps) {
                     )}
                 </div>
 
-                {/* COLUMNA OPERACIONES Y RECURSOS (1 COLUMNA DE ANCHO) */}
+                {/* COLUMNA OPERACIONES Y RECURSOS */}
                 <div className="flex flex-col gap-6">
 
                     {/* ENCARGADOS TÉCNICOS */}
                     <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Staff Técnico</h3>
-
                         {(!event.staff || event.staff.length === 0) ? (
                             <p className="text-[11px] font-bold text-slate-500 text-center py-2 bg-slate-950/40 border border-slate-800 rounded-lg uppercase tracking-wider">
                                 Sin personal asignado
                             </p>
                         ) : (
                             <div className="flex flex-col gap-2">
-                                {event.staff.map((member) => (
-                                    <div key={member.id} className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg text-xs flex flex-col gap-0.5">
+                                {event.staff.map((member, idx) => (
+                                    <div key={idx} className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg text-xs flex flex-col gap-0.5">
                                         <span className="font-bold text-slate-200 truncate">{member.email}</span>
                                         <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">{member.role}</span>
                                     </div>
@@ -194,24 +191,27 @@ export default function EventDetailPage({ params }: PageProps) {
                         )}
                     </div>
 
-                    {/* RECURSOS DE BODEGA ASIGNADOS */}
+                    {/* RECURSOS DE BODEGA ASIGNADOS (CORREGIDO) */}
                     <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Insumos Despachados</h3>
 
-                        {(!event.inventory_assignments || event.inventory_assignments.length === 0) ? (
+                        {/* CORREGIDO: Cambiado de inventory_assignments a inventory */}
+                        {(!event.inventory || event.inventory.length === 0) ? (
                             <p className="text-[11px] font-bold text-slate-500 text-center py-2 bg-slate-950/40 border border-slate-800 rounded-lg uppercase tracking-wider">
                                 Sin recursos requeridos
                             </p>
                         ) : (
                             <div className="flex flex-col gap-2">
-                                {event.inventory_assignments.map((assignment) => (
+                                {event.inventory.map((assignment) => (
                                     <div key={assignment.item_id} className="bg-slate-950 border border-slate-800 px-3 py-2.5 rounded-lg flex justify-between items-center text-xs gap-3">
                                         <div className="flex flex-col min-w-0">
-                                            <span className="font-bold text-slate-200 truncate">{assignment.item_name}</span>
-                                            <span className="text-[9px] font-black uppercase text-slate-500">{assignment.category}</span>
+                                            {/* CORREGIDO: Cambiado a assignment.name */}
+                                            <span className="font-bold text-slate-200 truncate">{assignment.name}</span>
+                                            <span className="text-[9px] font-black uppercase text-slate-500">{assignment.category || "General"}</span>
                                         </div>
+                                        {/* CORREGIDO: Cambiado a assignment.unit */}
                                         <span className="font-mono font-bold text-indigo-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-[10px] shrink-0">
-                                            {assignment.quantity_used} {assignment.unit_of_measure !== "N/A" ? assignment.unit_of_measure : "uds"}
+                                            {assignment.quantity_used} {assignment.unit !== "N/A" ? assignment.unit : "uds"}
                                         </span>
                                     </div>
                                 ))}
