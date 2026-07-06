@@ -1,4 +1,3 @@
-// components/chatbot/AssistantChatWindow.tsx
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { endpoint } from "@/consts/backEndpoint";
@@ -11,10 +10,19 @@ interface Message {
 
 interface AssistantChatWindowProps {
     closeChat: () => void;
-    onApplyExtractedData: (data: { itinerary: any[]; staff: any[]; inventory: any[] }) => void;
+    // Tipado robustecido para incluir la metadata del presupuesto e invitados calculados por la IA
+    onApplyExtractedData: (data: {
+        itinerary: any[];
+        staff: any[];
+        inventory: any[];
+        guests_count?: number;
+        total_estimated_logistic_cost?: number;
+        budget_projections?: any[];
+    }) => void;
+    currentGuestsCount: number; // Sincronización nativa con el aforo actual (CSV/Manual)
 }
 
-export default function AssistantChatWindow({ closeChat, onApplyExtractedData }: AssistantChatWindowProps) {
+export default function AssistantChatWindow({ closeChat, onApplyExtractedData, currentGuestsCount }: AssistantChatWindowProps) {
     const [messages, setMessages] = useState<Message[]>([
         { sender: "bot", text: "¡Epa, varón! Soy tu asistente de producción. Dime qué necesitas acoplar al evento (canciones, personal técnico o insumos de bodega) y yo me encargo del volcado." }
     ]);
@@ -30,7 +38,6 @@ export default function AssistantChatWindow({ closeChat, onApplyExtractedData }:
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // CORREGIDO: Validación limpia y nativa de JS
         if (!input.trim()) return;
 
         const userText = input.trim();
@@ -42,7 +49,11 @@ export default function AssistantChatWindow({ closeChat, onApplyExtractedData }:
             const res = await fetch(`${endpoint}api/assistant/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: userText })
+                // Seteamos el aforo actual para que el LLM/Agente calcule presupuestos dinámicos en caliente
+                body: JSON.stringify({
+                    message: userText,
+                    current_guests_count: currentGuestsCount
+                })
             });
 
             const data = await res.json();
@@ -51,7 +62,7 @@ export default function AssistantChatWindow({ closeChat, onApplyExtractedData }:
             // Mostrar respuesta textual del bot
             setMessages((prev) => [...prev, { sender: "bot", text: data.message || "Procesado correctamente." }]);
 
-            // Si el backend logró extraer formularios/entidades válidas, las volcamos al layout
+            // Si el backend logró extraer formularios/entidades/presupuestos válidos, las volcamos al layout
             if (data.extracted_data) {
                 onApplyExtractedData(data.extracted_data);
             }
@@ -71,7 +82,7 @@ export default function AssistantChatWindow({ closeChat, onApplyExtractedData }:
             <div className="px-4 py-3 bg-slate-950 border-b border-slate-800/80 flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-200">Asistente de Producción</span>
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-200">Asistente de Production</span>
                 </div>
                 <button
                     onClick={closeChat}
@@ -110,7 +121,7 @@ export default function AssistantChatWindow({ closeChat, onApplyExtractedData }:
             <form onSubmit={handleSendMessage} className="p-3 bg-slate-950 border-t border-slate-800/80 flex gap-2 shrink-0">
                 <input
                     type="text"
-                    placeholder="Ej: Añade la canción Crimen a las 9pm..."
+                    placeholder="Ej: Calcula el banquete a $5 por persona..."
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     disabled={loading}

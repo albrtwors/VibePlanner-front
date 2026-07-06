@@ -19,20 +19,27 @@ export default function CreateInventoryItem() {
     const [totalStock, setTotalStock] = useState<number>(1);
     const [unitOfMeasure, setUnitOfMeasure] = useState("uds");
     const [isConsumable, setIsConsumable] = useState(false);
-    const [pricePerUnit, setPricePerUnit] = useState<number>(0); // NUEVO ESTADO
+    const [pricePerUnit, setPricePerUnit] = useState<number>(0);
 
     // Catálogos coherentes
     const categories = ["Audio", "Iluminación", "Video", "Estructuras", "Cables", "Consumibles", "Logística"];
-    const units = ["uds", "metros", "packs", "cajas", "sets"];
+
+    // CATÁLOGO EXPANDIDO ESTÁNDAR
+    const units = [
+        "uds", "unidades", "piezas", "metros", "rollos",
+        "packs", "cajas", "sets", "litros", "ml", "kg", "gramos"
+    ];
 
     // Callback para que la IA auto-rellene los campos desde el FAB flotante
     const handleAutofillForm = (singleItem: { name: string; category: string; total_stock: number; unit_of_measure: string; is_consumable: boolean; price_per_unit?: number }) => {
         setName(singleItem.name);
         setCategory(categories.includes(singleItem.category) ? singleItem.category : "Logística");
         setTotalStock(singleItem.total_stock);
+
+        // CORREGIDO: Mapeo exacto con el nuevo catálogo
         setUnitOfMeasure(units.includes(singleItem.unit_of_measure) ? singleItem.unit_of_measure : "uds");
         setIsConsumable(singleItem.is_consumable);
-        setPricePerUnit(singleItem.price_per_unit || 0); // NUEVO Relleno
+        setPricePerUnit(singleItem.price_per_unit || 0);
         notify.success("¡Campos cargados desde el Asistente IA!");
     };
 
@@ -52,7 +59,7 @@ export default function CreateInventoryItem() {
             total_stock: Number(totalStock),
             unit_of_measure: unitOfMeasure,
             is_consumable: isConsumable,
-            price_per_unit: Number(pricePerUnit) // NUEVO ENVÍO
+            price_per_unit: Number(pricePerUnit)
         };
 
         try {

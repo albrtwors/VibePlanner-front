@@ -63,7 +63,15 @@ export default function Navbar() {
                         >
                             Canciones
                         </Link>
-
+                        <Link
+                            href="/chords/create"
+                            className={`rounded-lg px-3 py-2 transition-all ${isActive("/chords/create")
+                                ? "bg-slate-900 text-indigo-400 font-semibold border-b-2 border-indigo-500/50 rounded-b-none"
+                                : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                                }`}
+                        >
+                            Armonizar
+                        </Link>
                         <Link
                             href="/files"
                             className={`rounded-lg px-3 py-2 transition-all ${isActive("/files")

@@ -1,4 +1,3 @@
-// app/events/create/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -34,6 +33,14 @@ interface SelectedInventoryItem {
     category: string;
 }
 
+interface BudgetProjection {
+    name: string;
+    quantity: number;
+    price_per_unit: number;
+    total_cost: number;
+    in_stock: boolean;
+}
+
 export default function CreateEvent() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -44,6 +51,11 @@ export default function CreateEvent() {
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
     const [targetAudience, setTargetAudience] = useState("General");
+
+    // --- NUEVOS ESTADOS DE LOGÍSTICA FINANCIERA ---
+    const [guestsCount, setGuestsCount] = useState<number>(0);
+    const [estimatedLogisticBudget, setEstimatedLogisticBudget] = useState<number>(0.00);
+    const [budgetProjections, setBudgetProjections] = useState<BudgetProjection[]>([]);
 
     // Listas dinámicas
     const [staff, setStaff] = useState<{ email: string; role: string }[]>([]);
@@ -59,6 +71,37 @@ export default function CreateEvent() {
     }, []);
 
     // ==========================================
+    // HANDLER: LECTURA Y PROCESADO DE CSV
+    // ==========================================
+    const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target?.result as string;
+            if (!text) return;
+
+            const lines = text.split("\n")
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+
+            if (lines.length <= 1) {
+                notify.error("El archivo CSV está vacío o contiene solo la cabecera, varón.");
+                return;
+            }
+
+            const dataLines = lines.slice(1);
+            const totalGuests = dataLines.length;
+
+            setGuestsCount(totalGuests);
+            notify.success(`¡CSV procesado con éxito! Se detectaron ${totalGuests} invitados.`);
+        };
+
+        reader.readAsText(file);
+    };
+
+    // ==========================================
     // HANDLERS: STAFF LOGÍSTICA
     // ==========================================
     const addStaffRow = () => setStaff([...staff, { email: "", role: "" }]);
@@ -70,7 +113,7 @@ export default function CreateEvent() {
     };
 
     // ==========================================
-    // HANDLERS: INVENTARIO (CON CONTENEDORES CURVOS)
+    // HANDLERS: INVENTARIO
     // ==========================================
     const handleAddInventoryItem = (itemId: number, qty: number) => {
         const itemInCatalog = catalog.find((c) => c.id === itemId);
@@ -130,8 +173,34 @@ export default function CreateEvent() {
     // ==========================================
     // HANDLER CENTRAL: PROCESAMIENTO VOLCADO DE IA
     // ==========================================
-    const handleApplyExtractedData = (extracted: { itinerary: any[]; staff: any[]; inventory: any[] }) => {
-        const { itinerary: newItinerary, staff: newStaff, inventory: newInventory } = extracted;
+    const handleApplyExtractedData = (extracted: {
+        itinerary: any[];
+        staff: any[];
+        inventory: any[];
+        guests_count?: number;
+        total_estimated_logistic_cost?: number;
+        budget_projections?: BudgetProjection[];
+    }) => {
+        const {
+            itinerary: newItinerary,
+            staff: newStaff,
+            inventory: newInventory,
+            guests_count,
+            total_estimated_logistic_cost,
+            budget_projections
+        } = extracted;
+
+        if (guests_count !== undefined && guests_count > 0) {
+            setGuestsCount(guests_count);
+        }
+
+        if (total_estimated_logistic_cost !== undefined) {
+            setEstimatedLogisticBudget(total_estimated_logistic_cost);
+        }
+
+        if (budget_projections) {
+            setBudgetProjections(budget_projections);
+        }
 
         if (newItinerary && newItinerary.length > 0) {
             setItinerary((prev) => sortItinerary([...prev, ...newItinerary]));
@@ -149,11 +218,11 @@ export default function CreateEvent() {
                 newInventory.forEach((newItem) => {
                     const idx = updated.findIndex((item) => item.item_id === newItem.item_id);
                     if (idx > -1) {
-                        updated[idx].quantity_used += newItem.quantity_used;
+                        updated[idx].quantity_used += newItem.quantity;
                     } else {
                         updated.push({
                             item_id: newItem.item_id,
-                            quantity_used: newItem.quantity_used,
+                            quantity_used: newItem.quantity,
                             name: newItem.name,
                             unit: newItem.unit || "uds",
                             category: newItem.category || "General",
@@ -183,6 +252,8 @@ export default function CreateEvent() {
             date,
             time,
             target_audience: targetAudience,
+            guests_count: guestsCount,
+            estimated_logistic_budget: estimatedLogisticBudget,
             itinerary,
             staff: staff.filter((s) => s.email && s.role),
             inventory: selectedInventory.map((i) => ({ item_id: i.item_id, quantity: i.quantity_used })),
@@ -216,13 +287,13 @@ export default function CreateEvent() {
                     Agendar Nuevo Evento
                 </h1>
                 <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mt-1">
-                    Diseño interactivo de cronogramas, repertorio musical y control de insumos
+                    Diseño interactivo de cronogramas, repertorio musical, control de insumos y presupuesto por lote
                 </p>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
-                {/* 1. METADATA DEL EVENTO */}
+                {/* 1. METADATA DEL EVENTO CON CARGA DE CSV */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-4 shadow-xl shadow-black/10">
                     <div className="sm:col-span-2 flex flex-col gap-1.5">
                         <label className="text-xs font-black uppercase tracking-wider text-slate-400">Nombre del Evento *</label>
@@ -261,9 +332,66 @@ export default function CreateEvent() {
                             className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none"
                         />
                     </div>
+
+                    {/* SECCIÓN DINÁMICA DE INVITADOS + CSV BATCH */}
+                    <div className="flex flex-col gap-1.5 sm:col-span-1">
+                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Aforo / Invitados</label>
+                        <input
+                            type="number"
+                            value={guestsCount || ""}
+                            onChange={(e) => setGuestsCount(Number(e.target.value))}
+                            placeholder="0"
+                            className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-1.5 sm:col-span-1">
+                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Cargar Lista en Lote (.CSV)</label>
+                        <div className="relative w-full bg-slate-950 border border-dashed border-slate-700 hover:border-indigo-500/50 rounded-lg px-4 py-2 flex items-center justify-center gap-2 cursor-pointer transition-all h-[42px]">
+                            <input
+                                type="file"
+                                accept=".csv"
+                                onChange={handleCSVUpload}
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
+                            <span className="text-xs font-bold text-indigo-400 uppercase tracking-wide">
+                                📁 Importar Invitados
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* 2. ITINERARIO INTERACTIVO CON BUSCADORES DE MÚSICA */}
+                {/* 2. PROYECCIONES FINANCIERAS DE LA IA */}
+                {budgetProjections.length > 0 && (
+                    <div className="bg-slate-900 border border-amber-500/30 p-5 rounded-xl flex flex-col gap-3 shadow-xl shadow-black/10">
+                        <div>
+                            <span className="text-[9px] font-black uppercase bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2 py-0.5 rounded">
+                                Análisis Predictivo del Asistente
+                            </span>
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-200 mt-1.5">Proyección de Costos de Logística</h3>
+                        </div>
+                        <div className="flex flex-col gap-1.5 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                            {budgetProjections.map((proj, idx) => (
+                                <div key={idx} className="flex justify-between items-center text-xs border-b border-slate-900 pb-1.5 last:border-0 last:pb-0">
+                                    <span className="text-slate-400">
+                                        {proj.name} <span className="text-[10px] text-slate-600 font-mono">({proj.quantity} x ${proj.price_per_unit})</span>
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        {!proj.in_stock && (
+                                            <span className="text-[9px] font-black text-amber-500 bg-amber-500/5 px-1.5 py-0.5 rounded-md border border-amber-500/10">Externo</span>
+                                        )}
+                                        <span className="font-mono text-slate-200">${proj.total_cost.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            ))}
+                            <div className="flex justify-between items-center border-t border-slate-800 pt-2 mt-1 text-xs font-black">
+                                <span className="text-indigo-400">TOTAL LOGÍSTICA ESTIMADO:</span>
+                                <span className="font-mono text-emerald-400 text-sm">${estimatedLogisticBudget.toFixed(2)} USD</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 3. ITINERARIO INTERACTIVO CON BUSCADORES DE MÚSICA */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
                     <div className="flex justify-between items-center">
                         <div>
@@ -305,7 +433,7 @@ export default function CreateEvent() {
                     )}
                 </div>
 
-                {/* 3. LOGÍSTICA DE PERSONAL (STAFF) */}
+                {/* 4. LOGÍSTICA DE PERSONAL (STAFF) */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Encargados Técnicos (Staff)</h3>
@@ -338,7 +466,7 @@ export default function CreateEvent() {
                     )}
                 </div>
 
-                {/* 4. ASIGNACIÓN DE BODEGA E INSUMOS */}
+                {/* 5. ASIGNACIÓN DE BODEGA E INSUMOS */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
                     <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Asignación de Recursos</h3>
 
@@ -396,6 +524,7 @@ export default function CreateEvent() {
                     <AssistantChatWindow
                         closeChat={closeChat}
                         onApplyExtractedData={handleApplyExtractedData}
+                        currentGuestsCount={guestsCount}
                     />
                 )}
             </ChatBotFAB>
