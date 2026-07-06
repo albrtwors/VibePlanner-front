@@ -191,16 +191,19 @@ export default function CreateEvent() {
         }
 
         if (newInventory && newInventory.length > 0) {
+            // DETONADOR DE AJUSTE: Si metemos items directos por el chat, 
+            // nos aseguramos de que el contador de invitados no interfiera con multiplicaciones fantasmas
             setSelectedInventory((prev) => {
                 let updated = [...prev];
                 newInventory.forEach((newItem) => {
                     const idx = updated.findIndex((item) => item.item_id === newItem.item_id);
                     if (idx > -1) {
-                        updated[idx].quantity_used += newItem.quantity;
+                        // Si el item ya existía en la orden, se respeta la cantidad directa inyectada por la IA
+                        updated[idx].quantity_used = newItem.quantity;
                     } else {
                         updated.push({
                             item_id: newItem.item_id,
-                            quantity_used: newItem.quantity,
+                            quantity_used: newItem.quantity, // 1.0 directo de la DB
                             name: newItem.name,
                             unit: newItem.unit || "uds",
                             category: newItem.category || "General",
@@ -209,7 +212,7 @@ export default function CreateEvent() {
                 });
                 return updated;
             });
-            notify.success(`Asistente inyectó ${newInventory.length} artículos a la orden.`);
+            notify.success(`¡Recurso asignado! Se inyectó el artículo directamente a la orden.`);
         }
     };
 
