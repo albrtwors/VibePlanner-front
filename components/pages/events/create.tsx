@@ -157,53 +157,46 @@ export default function CreateEvent() {
     // ==========================================
     // HANDLER CENTRAL: TOTALMENTE DEPURADO DE AFOROS
     // ==========================================
+    // ==========================================
+    // HANDLER CENTRAL: ACOPLE DE RECURSOS DIRECTOS
+    // ==========================================
     const handleApplyExtractedData = (extracted: {
         itinerary: any[];
         staff: any[];
         inventory: any[];
-        total_estimated_logistic_cost?: number;
-        budget_projections?: BudgetProjection[];
     }) => {
         const {
             itinerary: newItinerary,
             staff: newStaff,
-            inventory: newInventory,
-            total_estimated_logistic_cost,
-            budget_projections
+            inventory: newInventory
         } = extracted;
 
-        if (total_estimated_logistic_cost !== undefined) {
-            setEstimatedLogisticBudget(total_estimated_logistic_cost);
-        }
-
-        if (budget_projections) {
-            setBudgetProjections(budget_projections);
-        }
-
+        // 1. Acoplar bloques de Itinerario
         if (newItinerary && newItinerary.length > 0) {
             setItinerary((prev) => sortItinerary([...prev, ...newItinerary]));
             notify.success(`Asistente acopló ${newItinerary.length} bloques al cronograma.`);
         }
 
+        // 2. Acoplar Miembros del Staff
         if (newStaff && newStaff.length > 0) {
             setStaff((prev) => [...prev, ...newStaff]);
             notify.success(`Asistente vinculó ${newStaff.length} encargados al staff.`);
         }
 
+        // 3. Acoplar Inventario Físico Real de la DB
         if (newInventory && newInventory.length > 0) {
-            // DETONADOR DE AJUSTE: Si metemos items directos por el chat, 
-            // nos aseguramos de que el contador de invitados no interfiera con multiplicaciones fantasmas
             setSelectedInventory((prev) => {
                 let updated = [...prev];
                 newInventory.forEach((newItem) => {
                     const idx = updated.findIndex((item) => item.item_id === newItem.item_id);
                     if (idx > -1) {
-                        // Si el item ya existía en la orden, se respeta la cantidad directa inyectada por la IA
-                        updated[idx].quantity_used = newItem.quantity;
+                        // Si ya existe, se actualiza con la cantidad limpia devuelta por el servicio
+                        updated[idx].quantity_used = newItem.quantity_used;
                     } else {
+                        // Si no existe, se inyecta el recurso directo de la bodega
                         updated.push({
                             item_id: newItem.item_id,
-                            quantity_used: newItem.quantity, // 1.0 directo de la DB
+                            quantity_used: newItem.quantity_used, // Sincronizado con 'quantity_used' de tu Python
                             name: newItem.name,
                             unit: newItem.unit || "uds",
                             category: newItem.category || "General",
@@ -212,7 +205,7 @@ export default function CreateEvent() {
                 });
                 return updated;
             });
-            notify.success(`¡Recurso asignado! Se inyectó el artículo directamente a la orden.`);
+            notify.success(`Asistente inyectó ${newInventory.length} artículos a la orden.`);
         }
     };
 
