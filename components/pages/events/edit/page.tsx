@@ -447,14 +447,14 @@ export default function EditEvent({ params }: EditEventProps) {
             </div>
 
             {/* COMPONENTE FLOTANTE DE ASISTENTE DE IA INTELIGENTE (COHERENTE CON LA EDICIÓN) */}
-            <ChatBotFAB>
+            {/* <ChatBotFAB>
                 {({ closeChat }: any) => (
                     <AssistantChatWindow
                         closeChat={closeChat}
                         onApplyExtractedData={handleApplyExtractedData}
                     />
                 )}
-            </ChatBotFAB>
+            </ChatBotFAB> */}
 
         </div>
     );
