@@ -46,23 +46,19 @@ export default function CreateEvent() {
     const [loading, setLoading] = useState(false);
     const [catalog, setCatalog] = useState<CatalogItem[]>([]);
 
-    // State principal del Evento
     const [name, setName] = useState("");
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
     const [targetAudience, setTargetAudience] = useState("General");
 
-    // --- NUEVOS ESTADOS DE LOGÍSTICA FINANCIERA ---
     const [guestsCount, setGuestsCount] = useState<number>(0);
     const [estimatedLogisticBudget, setEstimatedLogisticBudget] = useState<number>(0.00);
     const [budgetProjections, setBudgetProjections] = useState<BudgetProjection[]>([]);
 
-    // Listas dinámicas
     const [staff, setStaff] = useState<{ email: string; role: string }[]>([]);
     const [itinerary, setItinerary] = useState<ItineraryBlock[]>([]);
     const [selectedInventory, setSelectedInventory] = useState<SelectedInventoryItem[]>([]);
 
-    // Cargar catálogo global de inventario al montar
     useEffect(() => {
         fetch(`${endpoint}api/inventory`)
             .then((res) => res.json())
@@ -70,9 +66,6 @@ export default function CreateEvent() {
             .catch(() => notify.error("Error al sincronizar catálogo de bodega."));
     }, []);
 
-    // ==========================================
-    // HANDLER: LECTURA Y PROCESADO DE CSV
-    // ==========================================
     const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -101,9 +94,6 @@ export default function CreateEvent() {
         reader.readAsText(file);
     };
 
-    // ==========================================
-    // HANDLERS: STAFF LOGÍSTICA
-    // ==========================================
     const addStaffRow = () => setStaff([...staff, { email: "", role: "" }]);
     const removeStaffRow = (index: number) => setStaff(staff.filter((_, i) => i !== index));
     const updateStaffRow = (index: number, field: "email" | "role", value: string) => {
@@ -112,9 +102,6 @@ export default function CreateEvent() {
         setStaff(updated);
     };
 
-    // ==========================================
-    // HANDLERS: INVENTARIO
-    // ==========================================
     const handleAddInventoryItem = (itemId: number, qty: number) => {
         const itemInCatalog = catalog.find((c) => c.id === itemId);
         if (!itemInCatalog) return;
@@ -143,9 +130,6 @@ export default function CreateEvent() {
         setSelectedInventory(selectedInventory.filter((i) => i.item_id !== itemId));
     };
 
-    // ==========================================
-    // HANDLERS: ITINERARIO INTERACTIVO AUTOMÁTICO
-    // ==========================================
     const sortItinerary = (list: ItineraryBlock[]) => {
         return [...list].sort((a, b) => a.time.localeCompare(b.time));
     };
@@ -171,13 +155,12 @@ export default function CreateEvent() {
     };
 
     // ==========================================
-    // HANDLER CENTRAL: PROCESAMIENTO VOLCADO DE IA
+    // HANDLER CENTRAL: TOTALMENTE DEPURADO DE AFOROS
     // ==========================================
     const handleApplyExtractedData = (extracted: {
         itinerary: any[];
         staff: any[];
         inventory: any[];
-        guests_count?: number;
         total_estimated_logistic_cost?: number;
         budget_projections?: BudgetProjection[];
     }) => {
@@ -185,14 +168,9 @@ export default function CreateEvent() {
             itinerary: newItinerary,
             staff: newStaff,
             inventory: newInventory,
-            guests_count,
             total_estimated_logistic_cost,
             budget_projections
         } = extracted;
-
-        if (guests_count !== undefined && guests_count > 0) {
-            setGuestsCount(guests_count);
-        }
 
         if (total_estimated_logistic_cost !== undefined) {
             setEstimatedLogisticBudget(total_estimated_logistic_cost);
@@ -235,9 +213,6 @@ export default function CreateEvent() {
         }
     };
 
-    // ==========================================
-    // ENVÍO DE DATOS
-    // ==========================================
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !date || !time) {
@@ -281,7 +256,6 @@ export default function CreateEvent() {
 
     return (
         <div className="max-w-5xl mx-auto px-4 py-8 font-medium text-slate-100 flex flex-col gap-8">
-            {/* Cabecera */}
             <div className="border-b border-slate-800 pb-5">
                 <h1 className="text-2xl font-black uppercase tracking-tight text-slate-100 sm:text-3xl">
                     Agendar Nuevo Evento
@@ -292,8 +266,6 @@ export default function CreateEvent() {
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-
-                {/* 1. METADATA DEL EVENTO CON CARGA DE CSV */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-4 shadow-xl shadow-black/10">
                     <div className="sm:col-span-2 flex flex-col gap-1.5">
                         <label className="text-xs font-black uppercase tracking-wider text-slate-400">Nombre del Evento *</label>
@@ -333,7 +305,6 @@ export default function CreateEvent() {
                         />
                     </div>
 
-                    {/* SECCIÓN DINÁMICA DE INVITADOS + CSV BATCH */}
                     <div className="flex flex-col gap-1.5 sm:col-span-1">
                         <label className="text-xs font-black uppercase tracking-wider text-slate-400">Aforo / Invitados</label>
                         <input
@@ -360,7 +331,6 @@ export default function CreateEvent() {
                     </div>
                 </div>
 
-                {/* 2. PROYECCIONES FINANCIERAS DE LA IA */}
                 {budgetProjections.length > 0 && (
                     <div className="bg-slate-900 border border-amber-500/30 p-5 rounded-xl flex flex-col gap-3 shadow-xl shadow-black/10">
                         <div>
@@ -391,7 +361,6 @@ export default function CreateEvent() {
                     </div>
                 )}
 
-                {/* 3. ITINERARIO INTERACTIVO CON BUSCADORES DE MÚSICA */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
                     <div className="flex justify-between items-center">
                         <div>
@@ -433,7 +402,6 @@ export default function CreateEvent() {
                     )}
                 </div>
 
-                {/* 4. LOGÍSTICA DE PERSONAL (STAFF) */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Encargados Técnicos (Staff)</h3>
@@ -466,7 +434,6 @@ export default function CreateEvent() {
                     )}
                 </div>
 
-                {/* 5. ASIGNACIÓN DE BODEGA E INSUMOS */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
                     <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Asignación de Recursos</h3>
 
@@ -490,7 +457,6 @@ export default function CreateEvent() {
                     )}
                 </div>
 
-                {/* BOTONES ACCIÓN */}
                 <div className="flex justify-end gap-3 mt-2 border-t border-slate-800/60 pt-4">
                     <button
                         type="button"
@@ -505,7 +471,6 @@ export default function CreateEvent() {
                 </div>
             </form>
 
-            {/* LIVE PREVIEW INTEGRADO AL FINAL CON DISEÑO FLUIDO */}
             <div className="flex flex-col gap-4 border-t-2 border-dashed border-slate-800 pt-8 mt-4">
                 <div className="flex flex-col gap-1">
                     <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded self-start">
@@ -518,17 +483,14 @@ export default function CreateEvent() {
                 <EventInventoryView inventory={selectedInventory as any} />
             </div>
 
-            {/* COMPONENTE FLOTANTE DE ASISTENTE DE IA INTELIGENTE */}
             <ChatBotFAB>
                 {({ closeChat }: any) => (
                     <AssistantChatWindow
                         closeChat={closeChat}
                         onApplyExtractedData={handleApplyExtractedData}
-                        currentGuestsCount={guestsCount}
                     />
                 )}
             </ChatBotFAB>
-
         </div>
     );
 }
