@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 // Definimos la URL de Flask para desarrollo o producción de forma dinámica
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://vibe-planner-back.vercel.app";
+const BACKEND_URL = "https://vibe-planner-back.vercel.app";
 
 const nextConfig: NextConfig = {
   async rewrites() {
