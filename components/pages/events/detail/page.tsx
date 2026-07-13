@@ -16,13 +16,12 @@ interface EventStaff {
     role: string;
 }
 
-// CORREGIDO: Ajustado para mapear exactamente las claves que envía Flask
 interface EventInventory {
     item_id: number;
-    name: string;          // Flask envía "name"
+    name: string;
     category?: string;
-    quantity_used: number; // Flask envía "quantity_used"
-    unit: string;          // Flask envía "unit"
+    quantity_used: number;
+    unit: string;
 }
 
 interface EventDetail {
@@ -35,14 +34,17 @@ interface EventDetail {
     estimated_logistic_budget: number;
     itinerary: ItineraryBlock[];
     staff: EventStaff[];
-    inventory: EventInventory[]; // CORREGIDO: Flask envía "inventory"
+    inventory: EventInventory[];
+    // Añadidos en tipado para reflejar contadores reales si el backend los manda
+    groups?: any[];
+    participants?: any[];
 }
 
 interface PageProps {
     params: Promise<{ id: string }>;
 }
 
-export default function EventDetailPage({ params }: PageProps) {
+export default function EventDetailPagePage({ params }: PageProps) {
     const router = useRouter();
     const { id } = use(params);
 
@@ -101,8 +103,14 @@ export default function EventDetailPage({ params }: PageProps) {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                    {/* ENLACE DIRECTO AL LOTE DINÁMICO DE PARTICIPANTES */}
+                    <Link href={`/events/${id}/participants`}>
+                        <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-950/20 active:scale-95">
+                            👥 Gestionar Asistencia
+                        </button>
+                    </Link>
                     <Link href={`/events/${id}/edit`}>
-                        <button className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-black uppercase tracking-wider rounded-xl transition-all">
+                        <button className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95">
                             Editar Plan
                         </button>
                     </Link>
@@ -123,11 +131,14 @@ export default function EventDetailPage({ params }: PageProps) {
                 </div>
                 <div className="flex flex-col gap-1 border-t sm:border-t-0 border-slate-800 pt-3 sm:pt-0 sm:pl-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Métricas Operacionales</span>
-                    <div className="flex items-center gap-4 text-xs font-bold text-slate-300 mt-0.5">
+                    {/* RECUADRO CON LINK HACIA LOS PARTICIPANTES REGISTRADOS */}
+                    <Link href={`/events/${id}/participants`} className="group flex flex-wrap items-center gap-4 text-xs font-bold text-slate-300 mt-0.5 hover:text-indigo-400 transition-colors">
                         <span>👤 {event.staff?.length || 0} Operadores</span>
-                        {/* CORREGIDO: Cambiado a event.inventory */}
                         <span>📦 {event.inventory?.length || 0} Insumos</span>
-                    </div>
+                        <span className="text-indigo-400 bg-indigo-950/40 border border-indigo-800/40 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                            → Ver Asistentes ({event.participants?.length || 0})
+                        </span>
+                    </Link>
                 </div>
             </div>
 
@@ -191,11 +202,10 @@ export default function EventDetailPage({ params }: PageProps) {
                         )}
                     </div>
 
-                    {/* RECURSOS DE BODEGA ASIGNADOS (CORREGIDO) */}
+                    {/* RECURSOS DE BODEGA ASIGNADOS */}
                     <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Insumos Despachados</h3>
 
-                        {/* CORREGIDO: Cambiado de inventory_assignments a inventory */}
                         {(!event.inventory || event.inventory.length === 0) ? (
                             <p className="text-[11px] font-bold text-slate-500 text-center py-2 bg-slate-950/40 border border-slate-800 rounded-lg uppercase tracking-wider">
                                 Sin recursos requeridos
@@ -205,11 +215,9 @@ export default function EventDetailPage({ params }: PageProps) {
                                 {event.inventory.map((assignment) => (
                                     <div key={assignment.item_id} className="bg-slate-950 border border-slate-800 px-3 py-2.5 rounded-lg flex justify-between items-center text-xs gap-3">
                                         <div className="flex flex-col min-w-0">
-                                            {/* CORREGIDO: Cambiado a assignment.name */}
                                             <span className="font-bold text-slate-200 truncate">{assignment.name}</span>
                                             <span className="text-[9px] font-black uppercase text-slate-500">{assignment.category || "General"}</span>
                                         </div>
-                                        {/* CORREGIDO: Cambiado a assignment.unit */}
                                         <span className="font-mono font-bold text-indigo-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-[10px] shrink-0">
                                             {assignment.quantity_used} {assignment.unit !== "N/A" ? assignment.unit : "uds"}
                                         </span>

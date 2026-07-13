@@ -1,6 +1,12 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import {
+    PackagePlus, ArrowLeft, Layers,
+    Boxes, DollarSign, Archive, Scale, Loader2
+} from "lucide-react";
 import GenericButton from "@/components/buttons/GenericButton";
 import { notify } from "@/utils/toast";
 import { endpoint } from "@/consts/backEndpoint";
@@ -35,8 +41,6 @@ export default function CreateInventoryItem() {
         setName(singleItem.name);
         setCategory(categories.includes(singleItem.category) ? singleItem.category : "Logística");
         setTotalStock(singleItem.total_stock);
-
-        // CORREGIDO: Mapeo exacto con el nuevo catálogo
         setUnitOfMeasure(units.includes(singleItem.unit_of_measure) ? singleItem.unit_of_measure : "uds");
         setIsConsumable(singleItem.is_consumable);
         setPricePerUnit(singleItem.price_per_unit || 0);
@@ -83,64 +87,108 @@ export default function CreateInventoryItem() {
     };
 
     return (
-        <div className="max-w-3xl mx-auto px-4 py-8 font-medium text-slate-100 flex flex-col gap-6 relative">
-            <div className="border-b border-slate-800 pb-5">
-                <h1 className="text-2xl font-black uppercase tracking-tight text-slate-100 sm:text-3xl">
-                    Registrar Nuevo Artículo
-                </h1>
-                <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mt-1">
-                    Ingresa las especificaciones del nuevo recurso o equipo técnico para la bodega global
-                </p>
-            </div>
+        <div className="max-w-3xl mx-auto px-4 py-12 font-medium text-slate-100 flex flex-col gap-6 relative selection:bg-indigo-500/30">
+            {/* Efecto sutil de fondo */}
+            <div className="absolute top-0 left-1/4 w-[350px] h-[350px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-            <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 p-6 rounded-xl flex flex-col gap-5 shadow-xl shadow-black/10">
+            {/* Cabecera con botón de retorno rápido */}
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800/60 pb-6"
+            >
+                <div>
+                    <h1 className="text-3xl font-black uppercase tracking-tight text-slate-100 bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-slate-400 flex items-center gap-3">
+                        <PackagePlus className="w-8 h-8 text-indigo-400 shrink-0" /> Registrar Artículo
+                    </h1>
+                    <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mt-1.5">
+                        Ingresa las especificaciones del nuevo recurso o equipo técnico para la bodega global
+                    </p>
+                </div>
+                <motion.button
+                    whileHover={{ scale: 1.02, x: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => router.push("/inventory")}
+                    className="flex items-center gap-2 self-start sm:self-auto text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-200 bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-xl transition-all"
+                >
+                    <ArrowLeft className="w-4 h-4" /> Volver
+                </motion.button>
+            </motion.div>
+
+            {/* Formulario principal */}
+            <motion.form
+                initial={{ opacity: 0, scale: 0.99 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
+                onSubmit={handleSubmit}
+                className="bg-slate-900/30 backdrop-blur-md border border-slate-800/80 p-6 sm:p-8 rounded-xl flex flex-col gap-6 shadow-2xl"
+            >
                 {/* 1. Nombre */}
-                <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-black uppercase tracking-wider text-slate-400">Nombre del Artículo / Equipo *</label>
+                <div className="flex flex-col gap-1.5 group">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1">
+                        Nombre del Artículo / Equipo <span className="text-indigo-400 ml-0.5">*</span>
+                    </label>
                     <input
                         type="text"
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Ej: Consola Digital Behringer X32"
-                        className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-4 py-3 text-xs font-bold text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/70 focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300"
                     />
                 </div>
 
                 {/* 2. Categoría, Clasificación y Precio */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Categoría</label>
-                        <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <div className="flex flex-col gap-1.5 group">
+                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1">
+                            <Layers className="w-3 h-3" /> Categoría
+                        </label>
+                        <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-4 py-3 text-xs font-bold text-slate-100 focus:outline-none focus:border-indigo-500/70 focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300"
+                        >
                             {categories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
                         </select>
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Clasificación</label>
-                        <select value={isConsumable ? "true" : "false"} onChange={(e) => setIsConsumable(e.target.value === "true")} className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <div className="flex flex-col gap-1.5 group">
+                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1">
+                            <Boxes className="w-3 h-3" /> Clasificación
+                        </label>
+                        <select
+                            value={isConsumable ? "true" : "false"}
+                            onChange={(e) => setIsConsumable(e.target.value === "true")}
+                            className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-4 py-3 text-xs font-bold text-slate-100 focus:outline-none focus:border-indigo-500/70 focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300"
+                        >
                             <option value="false">Equipo Fijo</option>
                             <option value="true">Material Gastable</option>
                         </select>
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Precio Unitario ($)</label>
+                    <div className="flex flex-col gap-1.5 group">
+                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" /> Precio Unitario
+                        </label>
                         <input
                             type="number"
                             min="0"
                             step="0.01"
                             value={pricePerUnit}
                             onChange={(e) => setPricePerUnit(Number(e.target.value))}
-                            className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+                            className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-4 py-3 text-xs font-bold text-slate-100 focus:outline-none focus:border-indigo-500/70 focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 font-mono"
                         />
                     </div>
                 </div>
 
                 {/* 3. Stock y Unidad */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Existencia Inicial (Stock) *</label>
+                    <div className="flex flex-col gap-1.5 group">
+                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1">
+                            <Archive className="w-3 h-3" /> Existencia Inicial (Stock) <span className="text-indigo-400 ml-0.5">*</span>
+                        </label>
                         <input
                             type="number"
                             required
@@ -148,25 +196,54 @@ export default function CreateInventoryItem() {
                             step="any"
                             value={totalStock}
                             onChange={(e) => setTotalStock(e.target.value === "" ? 0 : Number(e.target.value))}
-                            className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+                            className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-4 py-3 text-xs font-bold text-slate-100 focus:outline-none focus:border-indigo-500/70 focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 font-mono"
                         />
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Unidad de Medida</label>
-                        <select value={unitOfMeasure} onChange={(e) => setUnitOfMeasure(e.target.value)} className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono">
+                    <div className="flex flex-col gap-1.5 group">
+                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1">
+                            <Scale className="w-3 h-3" /> Unidad de Medida
+                        </label>
+                        <select
+                            value={unitOfMeasure}
+                            onChange={(e) => setUnitOfMeasure(e.target.value)}
+                            className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-4 py-3 text-xs font-bold text-slate-100 focus:outline-none focus:border-indigo-500/70 focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 font-mono"
+                        >
                             {units.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
                         </select>
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-2 border-t border-slate-800/60 pt-4">
-                    <button type="button" onClick={() => router.push("/inventory")} className="px-5 py-2.5 bg-slate-900 border border-slate-800 text-slate-400 text-xs font-black uppercase rounded-xl">Cancelar</button>
-                    <GenericButton color="primary">{loading ? "Registrando..." : "Dar de Alta"}</GenericButton>
-                </div>
-            </form>
+                {/* Acciones del Formulario */}
+                <div className="flex justify-end gap-3 mt-4 border-t border-slate-800/60 pt-5">
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        type="button"
+                        onClick={() => router.push("/inventory")}
+                        className="px-5 py-2.5 bg-slate-950/40 border border-slate-800 hover:border-slate-700/80 text-slate-400 hover:text-slate-300 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+                    >
+                        Cancelar
+                    </motion.button>
 
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <GenericButton color="primary" >
+                            {loading ? (
+                                <span className="flex items-center gap-2 font-black uppercase text-xs tracking-wider">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Registrando...
+                                </span>
+                            ) : (
+                                <span className="font-black uppercase text-xs tracking-wider">Dar de Alta</span>
+                            )}
+                        </GenericButton>
+                    </motion.div>
+                </div>
+            </motion.form>
+
+            {/* Asistente Inteligente FAB */}
             <ChatBotFAB>
-                {({ closeChat }: any) => <InventoryChatAssistant closeChat={closeChat} onAutofillForm={handleAutofillForm} />}
+                {({ closeChat }: any) => (
+                    <InventoryChatAssistant closeChat={closeChat} onAutofillForm={handleAutofillForm} />
+                )}
             </ChatBotFAB>
         </div>
     );

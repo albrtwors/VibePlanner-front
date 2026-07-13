@@ -1,6 +1,13 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    CalendarPlus, Sparkles, UploadCloud, Users, Layers,
+    Trash2, Plus, AlertCircle, FileText, Briefcase,
+    TrendingUp, Eye, CheckCircle2, Loader2, ArrowLeft
+} from "lucide-react";
 import GenericButton from "@/components/buttons/GenericButton";
 import InventorySelector from "@/components/events/InventorySelector";
 import ContentSelector from "@/components/events/ContentSelector";
@@ -41,16 +48,51 @@ interface BudgetProjection {
     in_stock: boolean;
 }
 
+interface FormErrors {
+    name?: string;
+    date?: string;
+    time?: string;
+    targetAudience?: string;
+}
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
+};
+
+const sectionVariants = {
+    hidden: { opacity: 0, y: 15, scale: 0.99 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: { type: "spring", stiffness: 260, damping: 24 }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 25 } },
+    exit: { opacity: 0, x: 15, transition: { duration: 0.15 } }
+};
+
+const errorVariants = {
+    hidden: { opacity: 0, y: -4 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.18 } }
+};
+
 export default function CreateEvent() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [catalog, setCatalog] = useState<CatalogItem[]>([]);
 
+    // Estados principales del Formulario
     const [name, setName] = useState("");
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
     const [targetAudience, setTargetAudience] = useState("General");
 
+    const [errors, setErrors] = useState<FormErrors>({});
     const [guestsCount, setGuestsCount] = useState<number>(0);
     const [estimatedLogisticBudget, setEstimatedLogisticBudget] = useState<number>(0.00);
     const [budgetProjections, setBudgetProjections] = useState<BudgetProjection[]>([]);
@@ -66,6 +108,33 @@ export default function CreateEvent() {
             .catch(() => notify.error("Error al sincronizar catálogo de bodega."));
     }, []);
 
+    const validateForm = (): boolean => {
+        const localErrors: FormErrors = {};
+        const hasNumbers = /\d/;
+
+        if (!name.trim()) {
+            localErrors.name = "El nombre del evento es obligatorio, varón.";
+        } else if (name.trim().length < 3) {
+            localErrors.name = "El nombre debe contener al menos 3 caracteres.";
+        } else if (hasNumbers.test(name)) {
+            localErrors.name = "El nombre del evento no puede contener números.";
+        }
+
+        if (!date) localErrors.date = "La fecha es requerida.";
+        if (!time) localErrors.time = "La hora de inicio es requerida.";
+
+        if (targetAudience.trim()) {
+            if (targetAudience.trim().length < 3) {
+                localErrors.targetAudience = "El público objetivo debe tener al menos 3 caracteres.";
+            } else if (hasNumbers.test(targetAudience)) {
+                localErrors.targetAudience = "El público objetivo no puede contener números.";
+            }
+        }
+
+        setErrors(localErrors);
+        return Object.keys(localErrors).length === 0;
+    };
+
     const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -80,17 +149,14 @@ export default function CreateEvent() {
                 .filter(line => line.length > 0);
 
             if (lines.length <= 1) {
-                notify.error("El archivo CSV está vacío o contiene solo la cabecera, varón.");
+                notify.error("El archivo CSV está vacío o contiene solo la cabecera, mano.");
                 return;
             }
 
-            const dataLines = lines.slice(1);
-            const totalGuests = dataLines.length;
-
+            const totalGuests = lines.slice(1).length;
             setGuestsCount(totalGuests);
-            notify.success(`¡CSV procesado con éxito! Se detectaron ${totalGuests} invitados.`);
+            notify.success(`¡CSV procesado! Se detectaron ${totalGuests} invitados.`);
         };
-
         reader.readAsText(file);
     };
 
@@ -140,9 +206,7 @@ export default function CreateEvent() {
         notify.success("Bloque añadido al cronograma.");
     };
 
-    const addGenericBlock = () => {
-        addContentBlock("generic", "", time || "19:00");
-    };
+    const addGenericBlock = () => addContentBlock("generic", "", time || "19:00");
 
     const updateItineraryBlock = (index: number, field: "time" | "name", value: string) => {
         const updated = [...itinerary];
@@ -154,49 +218,28 @@ export default function CreateEvent() {
         setItinerary(itinerary.filter((_, i) => i !== index));
     };
 
-    // ==========================================
-    // HANDLER CENTRAL: TOTALMENTE DEPURADO DE AFOROS
-    // ==========================================
-    // ==========================================
-    // HANDLER CENTRAL: ACOPLE DE RECURSOS DIRECTOS
-    // ==========================================
-    const handleApplyExtractedData = (extracted: {
-        itinerary: any[];
-        staff: any[];
-        inventory: any[];
-    }) => {
-        const {
-            itinerary: newItinerary,
-            staff: newStaff,
-            inventory: newInventory
-        } = extracted;
+    const handleApplyExtractedData = (extracted: { itinerary: any[]; staff: any[]; inventory: any[]; }) => {
+        const { itinerary: newItinerary, staff: newStaff, inventory: newInventory } = extracted;
 
-        // 1. Acoplar bloques de Itinerario
         if (newItinerary && newItinerary.length > 0) {
             setItinerary((prev) => sortItinerary([...prev, ...newItinerary]));
             notify.success(`Asistente acopló ${newItinerary.length} bloques al cronograma.`);
         }
-
-        // 2. Acoplar Miembros del Staff
         if (newStaff && newStaff.length > 0) {
             setStaff((prev) => [...prev, ...newStaff]);
             notify.success(`Asistente vinculó ${newStaff.length} encargados al staff.`);
         }
-
-        // 3. Acoplar Inventario Físico Real de la DB
         if (newInventory && newInventory.length > 0) {
             setSelectedInventory((prev) => {
                 let updated = [...prev];
                 newInventory.forEach((newItem) => {
                     const idx = updated.findIndex((item) => item.item_id === newItem.item_id);
                     if (idx > -1) {
-                        // Si ya existe, se actualiza con la cantidad limpia devuelta por el servicio
                         updated[idx].quantity_used = newItem.quantity_used;
                     } else {
-                        // Si no existe, se inyecta el recurso directo de la bodega
                         updated.push({
                             item_id: newItem.item_id,
-                            quantity_used: newItem.quantity_used, // Sincronizado con 'quantity_used' de tu Python
+                            quantity_used: newItem.quantity_used,
                             name: newItem.name,
                             unit: newItem.unit || "uds",
                             category: newItem.category || "General",
@@ -207,22 +250,22 @@ export default function CreateEvent() {
             });
             notify.success(`Asistente inyectó ${newInventory.length} artículos a la orden.`);
         }
+        setErrors({});
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name || !date || !time) {
-            notify.error("Por favor completa los campos obligatorios, varón.");
+        if (!validateForm()) {
+            notify.error("Revisa las alertas en rojo del formulario, mano.");
             return;
         }
 
         setLoading(true);
-
         const payload = {
-            name,
+            name: name.trim(),
             date,
             time,
-            target_audience: targetAudience,
+            target_audience: targetAudience.trim(),
             guests_count: guestsCount,
             estimated_logistic_budget: estimatedLogisticBudget,
             itinerary,
@@ -236,14 +279,12 @@ export default function CreateEvent() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
-
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Fallo al procesar el guardado.");
 
             notify.success("¡Evento e inventario consolidados con éxito!");
             router.push("/events");
         } catch (error: any) {
-            console.error(error);
             notify.error(error.message || "Error al registrar el evento.");
         } finally {
             setLoading(false);
@@ -251,125 +292,194 @@ export default function CreateEvent() {
     };
 
     return (
-        <div className="max-w-5xl mx-auto px-4 py-8 font-medium text-slate-100 flex flex-col gap-8">
-            <div className="border-b border-slate-800 pb-5">
-                <h1 className="text-2xl font-black uppercase tracking-tight text-slate-100 sm:text-3xl">
-                    Agendar Nuevo Evento
+        <div className="max-w-5xl mx-auto px-4 py-12 font-medium text-slate-100 flex flex-col gap-8 relative overflow-x-hidden selection:bg-indigo-500/30">
+            <div className="absolute top-0 left-1/3 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[140px] pointer-events-none" />
+
+            {/* Cabecera */}
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="border-b border-slate-800/60 pb-6"
+            >
+                <div className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                    <Layers className="w-3.5 h-3.5 text-indigo-500" /> Logística Avanzada
+                </div>
+                <h1 className="text-3xl font-black uppercase tracking-tight text-slate-100 sm:text-4xl bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-slate-400 flex items-center gap-3">
+                    <CalendarPlus className="w-8 h-8 text-indigo-400 shrink-0" /> Agendar Nuevo Evento
                 </h1>
-                <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mt-1">
+                <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mt-1.5">
                     Diseño interactivo de cronogramas, repertorio musical, control de insumos y presupuesto por lote
                 </p>
-            </div>
+            </motion.div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-4 shadow-xl shadow-black/10">
+            <motion.form
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                onSubmit={handleSubmit}
+                className="flex flex-col gap-6 relative z-10"
+            >
+                {/* PARTE 1: DATOS GENERALES */}
+                <motion.div className="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 p-6 sm:p-8 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-5 shadow-2xl">
                     <div className="sm:col-span-2 flex flex-col gap-1.5">
-                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Nombre del Evento *</label>
+                        <label className="text-xs font-black uppercase tracking-wider text-slate-400 pl-0.5">Nombre del Evento *</label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Ej: Boda Corporativa / Concierto en Vivo"
-                            className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className={`w-full bg-slate-950/60 border rounded-xl px-4 py-3 text-sm font-bold text-slate-100 focus:outline-none focus:ring-4 transition-all duration-300 ${errors.name ? "border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/5" : "border-slate-800 focus:border-indigo-500/70 focus:ring-indigo-500/5"
+                                }`}
                         />
+                        <AnimatePresence>
+                            {errors.name && (
+                                <motion.p variants={errorVariants} initial="hidden" animate="visible" exit="hidden" className="text-xs font-semibold text-rose-400 tracking-wide mt-0.5 flex items-center gap-1.5">
+                                    <AlertCircle className="w-3.5 h-3.5" /> {errors.name}
+                                </motion.p>
+                            )}
+                        </AnimatePresence>
                     </div>
+
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Fecha *</label>
+                        <label className="text-xs font-black uppercase tracking-wider text-slate-400 pl-0.5">Fecha *</label>
                         <input
                             type="date"
                             value={date}
                             onChange={(e) => setDate(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className={`w-full bg-slate-950/60 border rounded-xl px-4 py-3 text-sm font-bold text-slate-100 focus:outline-none focus:ring-4 transition-all duration-300 grid-cleaner ${errors.date ? "border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/5" : "border-slate-800 focus:border-indigo-500/70 focus:ring-indigo-500/5"
+                                }`}
                         />
+                        <AnimatePresence>
+                            {errors.date && (
+                                <motion.p variants={errorVariants} initial="hidden" animate="visible" exit="hidden" className="text-xs font-semibold text-rose-400 tracking-wide mt-0.5 flex items-center gap-1.5">
+                                    <AlertCircle className="w-3.5 h-3.5" /> {errors.date}
+                                </motion.p>
+                            )}
+                        </AnimatePresence>
                     </div>
+
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Hora de Inicio *</label>
+                        <label className="text-xs font-black uppercase tracking-wider text-slate-400 pl-0.5">Hora de Inicio *</label>
                         <input
                             type="time"
                             value={time}
                             onChange={(e) => setTime(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className={`w-full bg-slate-950/60 border rounded-xl px-4 py-3 text-sm font-bold text-slate-100 focus:outline-none focus:ring-4 transition-all duration-300 ${errors.time ? "border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/5" : "border-slate-800 focus:border-indigo-500/70 focus:ring-indigo-500/5"
+                                }`}
                         />
+                        <AnimatePresence>
+                            {errors.time && (
+                                <motion.p variants={errorVariants} initial="hidden" animate="visible" exit="hidden" className="text-xs font-semibold text-rose-400 tracking-wide mt-0.5 flex items-center gap-1.5">
+                                    <AlertCircle className="w-3.5 h-3.5" /> {errors.time}
+                                </motion.p>
+                            )}
+                        </AnimatePresence>
                     </div>
+
                     <div className="sm:col-span-2 flex flex-col gap-1.5">
-                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Público Objetivo</label>
+                        <label className="text-xs font-black uppercase tracking-wider text-slate-400 pl-0.5">Público Objetivo</label>
                         <input
                             type="text"
                             value={targetAudience}
                             onChange={(e) => setTargetAudience(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none"
+                            className={`w-full bg-slate-950/60 border rounded-xl px-4 py-3 text-sm font-bold text-slate-100 focus:outline-none focus:ring-4 transition-all duration-300 ${errors.targetAudience ? "border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/5" : "border-slate-800 focus:border-indigo-500/70 focus:ring-indigo-500/5"
+                                }`}
                         />
+                        <AnimatePresence>
+                            {errors.targetAudience && (
+                                <motion.p variants={errorVariants} initial="hidden" animate="visible" exit="hidden" className="text-xs font-semibold text-rose-400 tracking-wide mt-0.5 flex items-center gap-1.5">
+                                    <AlertCircle className="w-3.5 h-3.5" /> {errors.targetAudience}
+                                </motion.p>
+                            )}
+                        </AnimatePresence>
                     </div>
 
-                    <div className="flex flex-col gap-1.5 sm:col-span-1">
-                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Aforo / Invitados</label>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-black uppercase tracking-wider text-slate-400 pl-0.5">Aforo / Invitados</label>
                         <input
                             type="number"
                             value={guestsCount || ""}
                             onChange={(e) => setGuestsCount(Number(e.target.value))}
                             placeholder="0"
-                            className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-100 focus:outline-none"
+                            className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500/70 focus:ring-4 focus:ring-indigo-500/5 rounded-xl px-4 py-3 text-sm font-bold text-slate-100 focus:outline-none transition-all duration-300"
                         />
                     </div>
-                    <div className="flex flex-col gap-1.5 sm:col-span-1">
-                        <label className="text-xs font-black uppercase tracking-wider text-slate-400">Cargar Lista en Lote (.CSV)</label>
-                        <div className="relative w-full bg-slate-950 border border-dashed border-slate-700 hover:border-indigo-500/50 rounded-lg px-4 py-2 flex items-center justify-center gap-2 cursor-pointer transition-all h-[42px]">
+
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-black uppercase tracking-wider text-slate-400 pl-0.5">Cargar Lista en Lote (.CSV)</label>
+                        <div className="relative w-full bg-slate-950/40 border-2 border-dashed border-slate-800 hover:border-indigo-500/40 rounded-xl px-4 flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 h-[46px] group">
                             <input
                                 type="file"
                                 accept=".csv"
                                 onChange={handleCSVUpload}
-                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                className="absolute inset-0 opacity-0 cursor-pointer z-20"
                             />
-                            <span className="text-xs font-bold text-indigo-400 uppercase tracking-wide">
-                                📁 Importar Invitados
+                            <span className="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-2 group-hover:text-indigo-300 transition-colors">
+                                <UploadCloud className="w-4 h-4" /> Importar Invitados
                             </span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
-                {budgetProjections.length > 0 && (
-                    <div className="bg-slate-900 border border-amber-500/30 p-5 rounded-xl flex flex-col gap-3 shadow-xl shadow-black/10">
-                        <div>
-                            <span className="text-[9px] font-black uppercase bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2 py-0.5 rounded">
-                                Análisis Predictivo del Asistente
-                            </span>
-                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-200 mt-1.5">Proyección de Costos de Logística</h3>
-                        </div>
-                        <div className="flex flex-col gap-1.5 bg-slate-950 p-3 rounded-xl border border-slate-800">
-                            {budgetProjections.map((proj, idx) => (
-                                <div key={idx} className="flex justify-between items-center text-xs border-b border-slate-900 pb-1.5 last:border-0 last:pb-0">
-                                    <span className="text-slate-400">
-                                        {proj.name} <span className="text-[10px] text-slate-600 font-mono">({proj.quantity} x ${proj.price_per_unit})</span>
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        {!proj.in_stock && (
-                                            <span className="text-[9px] font-black text-amber-500 bg-amber-500/5 px-1.5 py-0.5 rounded-md border border-amber-500/10">Externo</span>
-                                        )}
-                                        <span className="font-mono text-slate-200">${proj.total_cost.toFixed(2)}</span>
-                                    </div>
-                                </div>
-                            ))}
-                            <div className="flex justify-between items-center border-t border-slate-800 pt-2 mt-1 text-xs font-black">
-                                <span className="text-indigo-400">TOTAL LOGÍSTICA ESTIMADO:</span>
-                                <span className="font-mono text-emerald-400 text-sm">${estimatedLogisticBudget.toFixed(2)} USD</span>
+                {/* PROYECCIÓN PRESUPUESTARIA */}
+                <AnimatePresence>
+                    {budgetProjections.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, height: "auto", scale: 1 }}
+                            exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                            transition={{ type: "spring", stiffness: 280, damping: 25 }}
+                            className="bg-slate-900/30 border border-amber-500/20 p-6 rounded-2xl flex flex-col gap-3 shadow-xl overflow-hidden"
+                        >
+                            <div className="flex items-center gap-2">
+                                <span className="text-[9px] font-black uppercase bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2 py-0.5 rounded flex items-center gap-1">
+                                    <TrendingUp className="w-2.5 h-2.5" /> Análisis Predictivo AI
+                                </span>
                             </div>
-                        </div>
-                    </div>
-                )}
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Proyección de Costos de Logística</h3>
 
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
-                    <div className="flex justify-between items-center">
+                            <div className="flex flex-col gap-2 bg-slate-950/80 p-4 rounded-xl border border-slate-800/80">
+                                {budgetProjections.map((proj, idx) => (
+                                    <div key={idx} className="flex justify-between items-center text-xs border-b border-slate-900 pb-2 last:border-0 last:pb-0">
+                                        <span className="text-slate-400 font-medium">
+                                            {proj.name} <span className="text-[10px] text-slate-600 font-mono">({proj.quantity} x ${proj.price_per_unit})</span>
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            {!proj.in_stock && (
+                                                <span className="text-[9px] font-black text-amber-500 bg-amber-500/5 px-2 py-0.5 rounded-md border border-amber-500/10 uppercase">Externo</span>
+                                            )}
+                                            <span className="font-mono text-slate-200 font-bold">${proj.total_cost.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div className="flex justify-between items-center border-t border-slate-800/80 pt-3 mt-1.5 text-xs font-black">
+                                    <span className="text-indigo-400 uppercase tracking-wider">Total Logística Estimado:</span>
+                                    <span className="font-mono text-emerald-400 text-sm bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-1 rounded-lg">${estimatedLogisticBudget.toFixed(2)} USD</span>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* CRONOGRAMA */}
+                <motion.div className="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 p-6 sm:p-8 rounded-2xl flex flex-col gap-4 shadow-2xl">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-800/40 pb-4">
                         <div>
-                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Estructuración del Cronograma</h3>
+                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-200 flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-indigo-400" /> Estructuración del Cronograma
+                            </h3>
                             <p className="text-[11px] font-semibold text-slate-400 mt-0.5">Acopla canciones de la base de datos, cancioneros completos o bloques genéricos.</p>
                         </div>
-                        <button
+                        <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
                             type="button"
                             onClick={addGenericBlock}
-                            className="px-3 py-1 bg-slate-950 border border-slate-800 hover:border-slate-700 text-indigo-400 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all"
+                            className="px-3 py-2 bg-slate-950 border border-slate-800 hover:border-indigo-500/30 text-indigo-400 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all self-start sm:self-auto"
                         >
                             + Bloque General
-                        </button>
+                        </motion.button>
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -378,106 +488,196 @@ export default function CreateEvent() {
                         <ContentSelector type="file" onAddBlock={(nameB, timeB) => addContentBlock("file", nameB, timeB)} />
                     </div>
 
-                    {itinerary.length === 0 ? (
-                        <p className="text-xs font-bold text-slate-500 text-center py-4 bg-slate-950/40 border border-dashed border-slate-800 rounded-xl uppercase tracking-wider">
-                            El itinerario está vacío. Vincula temas o actividades arriba.
-                        </p>
-                    ) : (
-                        <div className="flex flex-col gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block px-1">Línea de Tiempo del Show:</span>
-                            {itinerary.map((block, index) => (
-                                <ItineraryFormCard
-                                    key={index}
-                                    block={block}
-                                    index={index}
-                                    onUpdateBlock={updateItineraryBlock}
-                                    onRemoveBlock={removeItineraryBlock}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
-                    <div className="flex justify-between items-center">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Encargados Técnicos (Staff)</h3>
-                        <button type="button" onClick={addStaffRow} className="text-[11px] font-black uppercase tracking-wider text-indigo-400 hover:text-indigo-300">
-                            + Vincular Operador
-                        </button>
+                    <div className="mt-2">
+                        <AnimatePresence mode="popLayout" initial={false}>
+                            {itinerary.length === 0 ? (
+                                <motion.p
+                                    key="empty-itinerary"
+                                    initial={{ opacity: 0, scale: 0.98 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.98 }}
+                                    className="text-xs font-bold text-slate-500 text-center py-6 bg-slate-950/30 border border-dashed border-slate-800 rounded-xl uppercase tracking-wider"
+                                >
+                                    El itinerario está vacío. Vincula temas o actividades arriba.
+                                </motion.p>
+                            ) : (
+                                <motion.div layout className="flex flex-col gap-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block px-1 mb-1">Línea de Tiempo del Show:</span>
+                                    {itinerary.map((block, index) => (
+                                        <motion.div key={`${block.type}-${index}`} layout>
+                                            <ItineraryFormCard
+                                                block={block}
+                                                index={index}
+                                                onUpdateBlock={updateItineraryBlock}
+                                                onRemoveBlock={removeItineraryBlock}
+                                            />
+                                        </motion.div>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
-                    {staff.length > 0 && (
-                        <div className="flex flex-col gap-2">
-                            {staff.map((row, index) => (
-                                <div key={index} className="flex gap-2 items-center">
-                                    <input
-                                        type="email"
-                                        placeholder="Correo del operador"
-                                        value={row.email}
-                                        onChange={(e) => updateStaffRow(index, "email", e.target.value)}
-                                        className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Rol (ej: Iluminador)"
-                                        value={row.role}
-                                        onChange={(e) => updateStaffRow(index, "role", e.target.value)}
-                                        className="w-1/3 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none"
-                                    />
-                                    <button type="button" onClick={() => removeStaffRow(index)} className="p-2 text-red-400 hover:text-red-500">✕</button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                </motion.div>
 
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">Asignación de Recursos</h3>
+                {/* STAFF */}
+                <motion.div className="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 p-6 sm:p-8 rounded-2xl flex flex-col gap-4 shadow-2xl">
+                    <div className="flex justify-between items-center border-b border-slate-800/40 pb-4">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-200 flex items-center gap-2">
+                            <Briefcase className="w-4 h-4 text-indigo-400" /> Encargados Técnicos (Staff)
+                        </h3>
+                        <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            type="button"
+                            onClick={addStaffRow}
+                            className="text-[11px] font-black uppercase tracking-wider text-indigo-400 hover:text-indigo-300 bg-indigo-500/5 border border-indigo-500/10 px-2.5 py-1.5 rounded-lg transition-all"
+                        >
+                            + Vincular Operador
+                        </motion.button>
+                    </div>
+
+                    <div className="mt-1">
+                        <AnimatePresence mode="popLayout" initial={false}>
+                            {staff.length === 0 ? (
+                                <motion.p
+                                    key="empty-staff"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="text-xs font-bold text-slate-500 text-center py-4 uppercase tracking-wider"
+                                >
+                                    No hay operadores asignados a este evento.
+                                </motion.p>
+                            ) : (
+                                <div className="flex flex-col gap-2.5">
+                                    {staff.map((row, index) => (
+                                        <motion.div
+                                            key={index}
+
+                                            initial="hidden"
+                                            animate="visible"
+                                            exit="exit"
+                                            layout
+                                            className="flex gap-3 items-center bg-slate-950/30 p-2 border border-slate-800/50 rounded-xl"
+                                        >
+                                            <input
+                                                type="email"
+                                                placeholder="Correo del operador"
+                                                value={row.email}
+                                                onChange={(e) => updateStaffRow(index, "email", e.target.value)}
+                                                className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-indigo-500/40 transition-colors"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Rol (ej: Iluminador)"
+                                                value={row.role}
+                                                onChange={(e) => updateStaffRow(index, "role", e.target.value)}
+                                                className="w-1/3 bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-indigo-500/40 transition-colors"
+                                            />
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                type="button"
+                                                onClick={() => removeStaffRow(index)}
+                                                className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/5 border border-transparent hover:border-rose-500/10 rounded-lg transition-all shrink-0"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </motion.button>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </motion.div>
+
+                {/* RECURSOS */}
+                <motion.div className="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 p-6 sm:p-8 rounded-2xl flex flex-col gap-4 shadow-2xl">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-200 flex items-center gap-2 border-b border-slate-800/40 pb-4">
+                        <Users className="w-4 h-4 text-indigo-400" /> Asignación de Recursos en Bodega
+                    </h3>
 
                     <InventorySelector catalog={catalog} onAddItem={handleAddInventoryItem} />
 
-                    {selectedInventory.length > 0 && (
-                        <div className="flex flex-col gap-2 border-t border-slate-800/60 pt-4">
-                            <span className="text-[10px] font-black uppercase text-slate-500 block px-1">Artículos en Orden de Despacho:</span>
-                            {selectedInventory.map((item) => (
-                                <div key={item.item_id} className="flex justify-between items-center bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-300 transition-all hover:border-slate-700/60">
-                                    <span>[{item.category}] {item.name}</span>
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-mono text-indigo-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-[11px]">
-                                            {item.quantity_used} {item.unit !== "N/A" ? item.unit : "uds"}
-                                        </span>
-                                        <button type="button" onClick={() => removeInventoryItem(item.item_id)} className="text-slate-500 hover:text-red-400 text-sm font-black p-1">✕</button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                    <div className="mt-2">
+                        <AnimatePresence mode="popLayout" initial={false}>
+                            {selectedInventory.length > 0 && (
+                                <motion.div layout className="flex flex-col gap-2">
+                                    <span className="text-[10px] font-black uppercase text-slate-500 block px-1 mb-1">Artículos en Orden de Despacho:</span>
+                                    {selectedInventory.map((item) => (
+                                        <motion.div
+                                            key={item.item_id}
 
-                <div className="flex justify-end gap-3 mt-2 border-t border-slate-800/60 pt-4">
+                                            initial="hidden"
+                                            animate="visible"
+                                            exit="exit"
+                                            layout
+                                            className="flex justify-between items-center bg-slate-950/60 border border-slate-800 px-4 py-3 rounded-xl text-xs font-bold text-slate-300 transition-all hover:border-slate-800/80"
+                                        >
+                                            <span><span className="text-slate-500 text-[10px] font-black uppercase tracking-wider mr-1.5">[{item.category}]</span> {item.name}</span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-mono text-indigo-400 bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-lg text-[11px] font-bold">
+                                                    {item.quantity_used} {item.unit !== "N/A" ? item.unit : "uds"}
+                                                </span>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.05 }}
+                                                    type="button"
+                                                    onClick={() => removeInventoryItem(item.item_id)}
+                                                    className="text-slate-500 hover:text-rose-400 p-1.5 hover:bg-rose-500/5 border border-transparent hover:border-rose-500/10 rounded-lg transition-all"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </motion.button>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </motion.div>
+
+                {/* BOTONERA ACCIONES */}
+                <motion.div className="flex justify-end items-center gap-4 mt-2 border-t border-slate-800/60 pt-6">
                     <button
                         type="button"
                         onClick={() => router.push("/events")}
-                        className="px-5 py-2.5 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 text-xs font-black uppercase tracking-wider rounded-xl transition-all"
+                        className="text-sm font-semibold text-slate-400 hover:text-slate-200 px-2 transition-colors flex items-center gap-1.5"
                     >
-                        Cancelar
+                        <ArrowLeft className="w-4 h-4" /> Cancelar
                     </button>
-                    <GenericButton color="primary">
-                        {loading ? "Procesando..." : "Consolidar Evento"}
-                    </GenericButton>
-                </div>
-            </form>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <GenericButton color="primary">
+                            {loading ? (
+                                <span className="flex items-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin" /> Consolidando...
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1.5 font-black uppercase text-xs tracking-wider">
+                                    <CheckCircle2 className="w-4 h-4" /> Consolidar Evento
+                                </span>
+                            )}
+                        </GenericButton>
+                    </motion.div>
+                </motion.div>
+            </motion.form>
 
-            <div className="flex flex-col gap-4 border-t-2 border-dashed border-slate-800 pt-8 mt-4">
+            {/* LIVE PREVIEW SECCIÓN */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, margin: "-100px" }}
+                className="flex flex-col gap-4 border-t border-slate-800/80 pt-10 mt-6"
+            >
                 <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded self-start">
-                        Live Preview de Production
+                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded self-start flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> Live Preview de Production
                     </span>
-                    <h2 className="text-lg font-black uppercase text-slate-200">Vista Previa General</h2>
+                    <h2 className="text-xl font-black uppercase text-slate-200 tracking-tight">Vista Previa General</h2>
                 </div>
 
-                <EventItineraryView itinerary={itinerary as any} />
-                <EventInventoryView inventory={selectedInventory as any} />
-            </div>
+                <div className="grid grid-cols-1 gap-4 opacity-85 hover:opacity-100 transition-opacity duration-300">
+                    <EventItineraryView itinerary={itinerary as any} />
+                    <EventInventoryView inventory={selectedInventory as any} />
+                </div>
+            </motion.div>
 
             <ChatBotFAB>
                 {({ closeChat }: any) => (
