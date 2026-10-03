@@ -11,7 +11,7 @@ import SongStructureInput from "@/components/forms/SongStructureInput";
 import SongStructureViewer from "@/components/songs/SongStructureViewer";
 import { parseRawTextToStructure } from "@/utils/songParser";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface SongStructure {
     name: string;
@@ -103,7 +103,7 @@ export default function CreateSongPage() {
         const finalJsonStructure = parseRawTextToStructure(structureText);
 
         try {
-            const response = await fetch(`${endpoint}api/songs/`, {
+            const response = await fetch(apiUrl("/api/songs/"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

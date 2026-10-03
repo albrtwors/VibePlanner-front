@@ -6,8 +6,9 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, LogOut, LifeBuoy, PlusCircle } from "lucide-react";
 import { getClientProfile } from "@/utils/proxy";
+import { hasPermission, roleLabel, ClientProfile } from "@/utils/permissions";
 
-const PUBLIC_ROUTES = ["/login", "/register"];
+const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password"];
 
 // Variantes para el contenedor de la navegación (activa el retraso entre hijos)
 const navContainerVariants = {
@@ -32,9 +33,12 @@ const navItemVariants = {
 };
 
 export default function Navbar() {
-    const [role, setRole] = useState<string | null>(null);
+    const [profile, setProfile] = useState<ClientProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [isOpen, setIsOpen] = useState(false);
+
+    const role = profile?.role ?? null;
+    const permissions = profile?.permissions ?? [];
 
     const pathname = usePathname();
     const router = useRouter();
@@ -45,9 +49,9 @@ export default function Navbar() {
             const data = await getClientProfile();
 
             if (data && data.role) {
-                setRole(data.role.toLowerCase());
+                setProfile(data);
             } else {
-                setRole(null);
+                setProfile(null);
                 if (!PUBLIC_ROUTES.includes(pathname)) {
                     router.push("/login");
                 }
@@ -67,24 +71,33 @@ export default function Navbar() {
         } catch (err) {
             console.error("Error cerrando sesión:", err);
         } finally {
-            setRole(null);
+            setProfile(null);
             router.push("/login");
             router.refresh();
         }
     };
 
+    // Cada pestaña declara qué permiso necesita. Si el admin le saca el
+    // permiso a un rol, la pestaña desaparece sola en la próxima carga.
     const allLinks = [
-        { name: "Dashboard", href: "/dashboard", allowed: ["admin", "coordinator", "operator"] },
-        { name: "Eventos", href: "/events", allowed: ["admin", "coordinator"] },
-        { name: "Gastos", href: "/expenses", allowed: ["admin"] },
-        { name: "Canciones", href: "/songs", allowed: ["admin", "coordinator", "operator"] },
-        { name: "Armonizar", href: "/chords/create", allowed: ["admin", "coordinator", "operator"] },
-        { name: "Repertorio", href: "/files", allowed: ["admin", "coordinator", "operator"] },
-        { name: "Inventario", href: "/inventory", allowed: ["admin"] },
-        { name: "VibeAI", href: "/chatbot", allowed: ["admin", "coordinator"], special: true },
+        { name: "Dashboard", href: "/dashboard", requires: ["dashboard.view"] },
+        { name: "Eventos", href: "/events", requires: ["events.view"] },
+        { name: "Gastos", href: "/expenses", requires: ["expenses.view"] },
+        { name: "Canciones", href: "/songs", requires: ["songs.view"] },
+        { name: "Armonizar", href: "/chords/create", requires: ["songs.edit"] },
+        { name: "Repertorio", href: "/files", requires: ["files.view"] },
+        { name: "Inventario", href: "/inventory", requires: ["inventory.view"] },
+        { name: "VibeAI", href: "/chatbot", requires: ["ai.use"] },
     ];
 
-    const visibleLinks = allLinks.filter(link => role && link.allowed.includes(role));
+    const adminLinks = [
+        { name: "Usuarios", href: "/admin/users", requires: ["users.view"] },
+        { name: "Roles y Permisos", href: "/admin/roles", requires: ["roles.view"] },
+    ];
+
+    const visibleLinks = allLinks.filter(link => hasPermission(permissions, ...link.requires));
+    const visibleAdminLinks = adminLinks.filter(link => hasPermission(permissions, ...link.requires));
+    const canCreateEvent = hasPermission(permissions, "events.create");
 
     if (loading) {
         return <div className="h-16 w-full bg-slate-950 border-b border-slate-800/60 animate-pulse" />;
@@ -167,6 +180,36 @@ export default function Navbar() {
                                 </motion.div>
                             );
                         })}
+
+                        {visibleAdminLinks.length > 0 && (
+                            <>
+                                <span className="mx-1 h-5 w-px bg-slate-800" />
+                                {visibleAdminLinks.map((link) => {
+                                    const active = isActive(link.href);
+                                    return (
+                                        <motion.div
+                                            key={link.href}
+                                            whileHover={{ y: -1 }}
+                                            className="relative"
+                                        >
+                                            <Link
+                                                href={link.href}
+                                                className={`relative block rounded-lg px-3 py-2 transition-colors duration-300 ${active ? "text-amber-400 font-semibold" : "text-slate-400 hover:text-white"}`}
+                                            >
+                                                {active && (
+                                                    <motion.span
+                                                        layoutId="activeNavBackground"
+                                                        className="absolute inset-0 bg-slate-900/80 border-b border-amber-500/40 rounded-lg -z-10"
+                                                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                                                    />
+                                                )}
+                                                {link.name}
+                                            </Link>
+                                        </motion.div>
+                                    );
+                                })}
+                            </>
+                        )}
                     </motion.nav>
 
                     {/* Controles Desktop */}
@@ -180,7 +223,7 @@ export default function Navbar() {
                             <LifeBuoy className="w-4 h-4" /> Soporte
                         </button>
 
-                        {(role === "admin" || role === "coordinator") && (
+                        {canCreateEvent && (
                             <motion.button
                                 whileHover={{ scale: 1.03 }}
                                 whileTap={{ scale: 0.97 }}
@@ -189,6 +232,10 @@ export default function Navbar() {
                                 <PlusCircle className="w-4 h-4" /> Nuevo Evento
                             </motion.button>
                         )}
+
+                        <span className="hidden lg:inline-flex items-center rounded-xl border border-slate-800 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-400">
+                            {roleLabel(role || "")}
+                        </span>
 
                         <motion.button
                             whileHover={{ scale: 1.02 }}
@@ -242,7 +289,33 @@ export default function Navbar() {
                                     </Link>
                                 </motion.div>
                             ))}
+                            {visibleAdminLinks.length > 0 && (
+                                <>
+                                    <div className="border-t border-slate-900 my-2 pt-2" />
+                                    <p className="px-4 pb-1 pt-1 text-[10px] font-bold uppercase tracking-widest text-slate-600">
+                                        Administración
+                                    </p>
+                                    {visibleAdminLinks.map((link) => (
+                                        <motion.div key={link.href}>
+                                            <Link
+                                                href={link.href}
+                                                onClick={() => setIsOpen(false)}
+                                                className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive(link.href)
+                                                    ? "bg-slate-900 text-amber-400 border-l-2 border-amber-500 pl-3"
+                                                    : "text-slate-400 hover:bg-slate-900/50 hover:text-white"
+                                                    }`}
+                                            >
+                                                {link.name}
+                                            </Link>
+                                        </motion.div>
+                                    ))}
+                                </>
+                            )}
+
                             <div className="border-t border-slate-900 my-2 pt-2" />
+                            <p className="px-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-600">
+                                {roleLabel(role || "")}
+                            </p>
                             <button
                                 onClick={() => { setIsOpen(false); handleLogout(); }}
                                 className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-rose-400 hover:bg-rose-500/10 rounded-xl text-sm font-medium transition-all"

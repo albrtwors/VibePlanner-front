@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import GenericButton from "@/components/buttons/GenericButton";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface InventoryItem {
     id: number;
@@ -58,7 +58,7 @@ export default function InventoryPage() {
         if (category) params.append("category", category);
         if (isConsumable) params.append("is_consumable", isConsumable);
 
-        fetch(`${endpoint}api/inventory?${params.toString()}`)
+        fetch(apiUrl(`/api/inventory?${params.toString()}`))
             .then((res) => {
                 if (!res.ok) throw new Error();
                 return res.json();
@@ -79,7 +79,7 @@ export default function InventoryPage() {
         if (!confirm(`¿Estás seguro de remover '${name}' de la bodega, varón?`)) return;
 
         try {
-            const res = await fetch(`${endpoint}api/inventory/${id}`, {
+            const res = await fetch(apiUrl(`/api/inventory/${id}`), {
                 method: "DELETE",
             });
             const data = await res.json();

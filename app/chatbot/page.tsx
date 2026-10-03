@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 import { notify } from "@/utils/toast";
 
 interface Message {
@@ -36,7 +36,7 @@ export default function ChatbotPage() {
         setLoading(true);
 
         try {
-            const res = await fetch(`${endpoint}api/chatbot`, {
+            const res = await fetch(apiUrl("/api/chatbot"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ message: userText }),

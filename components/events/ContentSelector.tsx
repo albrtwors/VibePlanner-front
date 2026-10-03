@@ -1,7 +1,7 @@
 // components/events/ContentSelector.tsx
 "use client";
 import { useState, useEffect } from "react";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface ContentSelectorProps {
     type: "song" | "file" | "generic"; // Añadido "generic"
@@ -40,8 +40,8 @@ export default function ContentSelector({ type, onAddBlock }: ContentSelectorPro
             }
 
             const url = type === "song"
-                ? `${endpoint}api/songs?name=${encodeURIComponent(search)}`
-                : `${endpoint}api/files?name=${encodeURIComponent(search)}`;
+                ? apiUrl(`/api/songs?name=${encodeURIComponent(search)}`)
+                : apiUrl(`/api/files?name=${encodeURIComponent(search)}`);
 
             fetch(url)
                 .then(res => res.json())

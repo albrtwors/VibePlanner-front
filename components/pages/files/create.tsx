@@ -8,7 +8,7 @@ import { ArrowLeft, Search, GripVertical, Trash2, Sparkles, Loader2, AlertCircle
 import Sortable from "sortablejs";
 import GenericButton from "@/components/buttons/GenericButton";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 import ChatBotFAB from "@/components/chatbot/ChatbotFAB";
 import FileChatAssistant from "@/components/chatbot/FileChatAssistant";
 
@@ -62,7 +62,7 @@ export default function CreateFilePage() {
         const delayDebounce = setTimeout(async () => {
             setIsSearching(true);
             try {
-                const res = await fetch(`${endpoint}api/songs/?name=${songSearch}`);
+                const res = await fetch(apiUrl(`/api/songs/?name=${songSearch}`));
                 if (res.ok) {
                     const data = await res.json();
 
@@ -180,7 +180,7 @@ export default function CreateFilePage() {
         }));
 
         try {
-            const response = await fetch(`${endpoint}api/files/`, {
+            const response = await fetch(apiUrl("/api/files/"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, Send, Plus, Minus, Check, Loader2 } from "lucide-react";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface SongPayload {
     id: number;
@@ -91,7 +91,7 @@ export default function FileChatAssistant({ closeChat, onApplySongs, currentSong
         setIsLoading(true);
 
         try {
-            const res = await fetch(`${endpoint}api/files/chat`, {
+            const res = await fetch(apiUrl("/api/files/chat"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

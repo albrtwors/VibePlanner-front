@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css"; // Asegúrate de importar tus estilos globales
 import Navbar from "@/components/navbar/Navbar";
+import RouteGuard from "@/components/auth/RouteGuard";
 import { ToastContainer } from "react-toastify";
 
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export default function RootLayout({
 
         {/* --- CONTENIDO PRINCIPAL --- */}
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
+          <RouteGuard>{children}</RouteGuard>
         </main>
 
         {/* --- FOOTER SENCILLO --- */}

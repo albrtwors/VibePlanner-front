@@ -14,7 +14,7 @@ import {
     Zap,
     Loader2
 } from "lucide-react";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 import { notify } from "@/utils/toast";
 import GenericButton from "@/components/buttons/GenericButton";
 import ChordLyricPreviewer from "@/components/songs/ChordLyricPreviewer";
@@ -109,7 +109,7 @@ export default function CreateSongPage() {
             try {
                 const base64Raw = (reader.result as string).split(",")[1];
 
-                const res = await fetch(`${endpoint}api/songs/upload-vision`, {
+                const res = await fetch(apiUrl("/api/songs/upload-vision"), {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ image_base64: base64Raw }),
@@ -200,7 +200,7 @@ export default function CreateSongPage() {
 
         setLoading(true);
         try {
-            const res = await fetch(`${endpoint}api/songs/`, {
+            const res = await fetch(apiUrl("/api/songs/"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

@@ -4,19 +4,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Mail, Lock, LogIn, Loader2, ShieldAlert } from "lucide-react";
+import { Mail, Lock, LogIn, Loader2, ShieldAlert, KeyRound } from "lucide-react";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [pendingVerification, setPendingVerification] = useState<string | null>(null);
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+        setPendingVerification(null);
         setLoading(true);
+
+        let data: any = null;
 
         try {
             const res = await fetch("/api/auth/login", {
@@ -26,9 +30,13 @@ export default function LoginPage() {
                 body: JSON.stringify({ email, password }),
             });
 
-            const data = await res.json();
+            data = await res.json();
 
             if (!res.ok) {
+                // El backend marca las cuentas que todavía no confirmaron su correo
+                if (data?.requires_verification) {
+                    setPendingVerification(data.email || email);
+                }
                 throw new Error(data.error || "Credenciales inválidas, mano.");
             }
 
@@ -73,10 +81,20 @@ export default function LoginPage() {
                         <motion.div
                             initial={{ opacity: 0, y: -4 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="flex items-center gap-2.5 rounded-xl bg-rose-500/5 p-3.5 text-xs font-bold text-rose-400 border border-rose-500/10"
+                            className="flex flex-col gap-2 rounded-xl bg-rose-500/5 p-3.5 text-xs font-bold text-rose-400 border border-rose-500/10"
                         >
-                            <ShieldAlert className="w-4 h-4 shrink-0 text-rose-500" />
-                            <span>{error}</span>
+                            <div className="flex items-center gap-2.5">
+                                <ShieldAlert className="w-4 h-4 shrink-0 text-rose-500" />
+                                <span>{error}</span>
+                            </div>
+                            {pendingVerification && (
+                                <Link
+                                    href="/register"
+                                    className="flex items-center gap-2 pl-6 text-[10px] font-black uppercase tracking-wider text-indigo-400 hover:text-indigo-300 transition-colors"
+                                >
+                                    <KeyRound className="w-3 h-3" /> Ingresar el código de verificación
+                                </Link>
+                            )}
                         </motion.div>
                     )}
 
@@ -101,9 +119,9 @@ export default function LoginPage() {
                             <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1.5">
                                 <Lock className="w-3 h-3" /> Contraseña
                             </label>
-                            <a href="#" className="text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-indigo-400 transition-colors">
+                            <Link href="/forgot-password" className="text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-indigo-400 transition-colors">
                                 ¿La olvidaste?
-                            </a>
+                            </Link>
                         </div>
                         <input
                             type="password"

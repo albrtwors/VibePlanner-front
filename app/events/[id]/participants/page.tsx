@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 import ChatBotFAB from "@/components/chatbot/ChatbotFAB";
 import ChatBotWindow from "@/components/chatbot/ChatbotParticipantsWindow";
 import { notify } from "@/utils/toast";
@@ -89,7 +89,7 @@ export default function AddParticipantsPage() {
         if (!eventId) return;
 
         setFetching(true);
-        fetch(`${endpoint}api/events/${eventId}`)
+        fetch(apiUrl(`/api/events/${eventId}`))
             .then((res) => {
                 if (!res.ok) throw new Error("Error al obtener los participantes existentes.");
                 return res.json();
@@ -198,7 +198,7 @@ export default function AddParticipantsPage() {
         if (!csvPendingAi) return;
         setCsvImporting(true);
         try {
-            const res = await fetch(`${endpoint}api/assistant/map-csv-headers`, {
+            const res = await fetch(apiUrl("/api/assistant/map-csv-headers"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ headers: csvPendingAi.headers }),
@@ -310,7 +310,7 @@ export default function AddParticipantsPage() {
         const cleanPayload = blocks.filter(b => b.displayName.trim() !== "");
 
         try {
-            const res = await fetch(`${endpoint}api/events/${eventId}/participants/json-sync`, {
+            const res = await fetch(apiUrl(`/api/events/${eventId}/participants/json-sync`), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ participants: cleanPayload }),

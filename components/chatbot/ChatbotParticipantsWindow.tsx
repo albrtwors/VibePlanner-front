@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface Message {
     sender: "user" | "ai";
@@ -44,7 +44,7 @@ export default function ChatBotWindow({ closeChat, currentBlocks, onBlocksUpdate
         setLoading(true);
 
         try {
-            const res = await fetch(`${endpoint}api/events/${eventId}/assistant/sync-participants`, {
+            const res = await fetch(apiUrl(`/api/events/${eventId}/assistant/sync-participants`), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Paperclip, Send, X, Eye, Sparkles } from "lucide-react";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 import { notify } from "@/utils/toast";
 
 interface SongPart {
@@ -120,7 +120,7 @@ export default function SongChatAssistant({ closeChat, onUpdateStructure }: Song
                 const base64Pure = canvas.toDataURL("image/jpeg", 0.65).split(",")[1];
 
                 try {
-                    const res = await fetch(`${endpoint}api/songs/upload-vision`, {
+                    const res = await fetch(apiUrl("/api/songs/upload-vision"), {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ image_base64: base64Pure }),

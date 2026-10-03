@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 export default function ExpensesCalculatorPage() {
     const [eventsData, setEventsData] = useState<any[]>([]);
@@ -11,8 +11,8 @@ export default function ExpensesCalculatorPage() {
     useEffect(() => {
         setIsMounted(true);
         Promise.all([
-            fetch(`${endpoint}api/events`).then(res => res.json()),
-            fetch(`${endpoint}api/inventory`).then(res => res.json())
+            fetch(apiUrl("/api/events")).then(res => res.json()),
+            fetch(apiUrl("/api/inventory")).then(res => res.json())
         ])
             .then(([events, inventoryCatalog]) => {
                 setEventsData(events);

@@ -7,7 +7,7 @@ import { Search, Plus, Music, Trash2, Edit3, Loader2 } from "lucide-react";
 import GenericButton from "@/components/buttons/GenericButton";
 import SongCard from "@/components/cards/SongCard";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface Song {
     id: number;
@@ -48,7 +48,7 @@ export default function SongsIndex() {
                 queryParams.append("genre", search);
             }
 
-            const res = await fetch(`${endpoint}api/songs/?${queryParams.toString()}`);
+            const res = await fetch(apiUrl(`/api/songs/?${queryParams.toString()}`));
             if (!res.ok) throw new Error("Error en la petición");
 
             const data = await res.json();
@@ -74,7 +74,7 @@ export default function SongsIndex() {
         if (!confirmed) return;
 
         try {
-            const res = await fetch(`${endpoint}api/songs/${id}`, {
+            const res = await fetch(apiUrl(`/api/songs/${id}`), {
                 method: "DELETE",
             });
 

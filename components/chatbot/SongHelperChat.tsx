@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, X, Send, Sparkles, CheckSquare, Loader2 } from "lucide-react";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface SongStructure {
     name: string;
@@ -65,7 +65,7 @@ export default function VibeHelperChat({ closeChat, onApplyStructure }: VibeHelp
         setMessages((prev) => [...prev, { id: loadingId, sender: "bot", text: "", isLoading: true }]);
 
         try {
-            const response = await fetch(`${endpoint}api/songs/generate-ia`, {
+            const response = await fetch(apiUrl("/api/songs/generate-ia"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ prompt: promptText }),

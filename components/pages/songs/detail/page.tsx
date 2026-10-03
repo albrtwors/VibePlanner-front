@@ -3,7 +3,7 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Music4, HelpCircle } from "lucide-react"; // Cambiamos el SVG a Lucide para un look consistente
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 import { notify } from "@/utils/toast";
 import SongStructureViewer from "@/components/songs/SongStructureViewer";
 
@@ -38,7 +38,7 @@ export default function SongDetailPage({ params }: PageProps) {
     useEffect(() => {
         const fetchSongDetail = async () => {
             try {
-                const res = await fetch(`${endpoint}api/songs/${id}`);
+                const res = await fetch(apiUrl(`/api/songs/${id}`));
                 if (!res.ok) {
                     if (res.status === 404) throw new Error("La canción no existe");
                     throw new Error("Error en el servidor");

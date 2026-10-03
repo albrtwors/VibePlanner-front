@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Sortable from "sortablejs";
 import GenericButton from "@/components/buttons/GenericButton";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface SearchSong {
     id: number;
@@ -47,7 +47,7 @@ export default function EditFilePage({ params }: EditFilePageProps) {
     useEffect(() => {
         const fetchFileMetadata = async () => {
             try {
-                const res = await fetch(`${endpoint}api/files/${id}`);
+                const res = await fetch(apiUrl(`/api/files/${id}`));
                 if (!res.ok) throw new Error("No se pudo obtener el cancionero.");
 
                 const data = await res.json();
@@ -85,7 +85,7 @@ export default function EditFilePage({ params }: EditFilePageProps) {
         const delayDebounce = setTimeout(async () => {
             setIsSearching(true);
             try {
-                const res = await fetch(`${endpoint}api/songs/?name=${encodeURIComponent(songSearch)}`);
+                const res = await fetch(apiUrl(`/api/songs/?name=${encodeURIComponent(songSearch)}`));
                 if (res.ok) {
                     const data = await res.json();
                     setSearchResults(data.songs || []);
@@ -167,7 +167,7 @@ export default function EditFilePage({ params }: EditFilePageProps) {
         }));
 
         try {
-            const response = await fetch(`${endpoint}api/files/${id}`, {
+            const response = await fetch(apiUrl(`/api/files/${id}`), {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

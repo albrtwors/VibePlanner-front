@@ -2,7 +2,7 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 import { notify } from "@/utils/toast";
 
 interface ItineraryBlock {
@@ -55,7 +55,7 @@ export default function EventDetailPagePage({ params }: PageProps) {
     useEffect(() => {
         setMounted(true);
 
-        fetch(`${endpoint}api/events/${id}`)
+        fetch(apiUrl(`/api/events/${id}`))
             .then((res) => {
                 if (!res.ok) throw new Error("No se pudo obtener el detalle del evento.");
                 return res.json();

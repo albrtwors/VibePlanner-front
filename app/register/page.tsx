@@ -1,10 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Mail, Lock, UserPlus, Loader2, ShieldAlert, AlertCircle } from "lucide-react";
+import {
+    User,
+    Mail,
+    Lock,
+    UserPlus,
+    Loader2,
+    ShieldAlert,
+    AlertCircle,
+    KeyRound,
+    ArrowLeft,
+    RotateCw,
+    CheckCircle2,
+} from "lucide-react";
 
 interface FormErrors {
     username?: string;
@@ -14,6 +26,10 @@ interface FormErrors {
     global?: string;
 }
 
+type Step = "form" | "verify" | "done";
+
+const RESEND_COOLDOWN_SECONDS = 60;
+
 export default function RegisterPage() {
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
@@ -22,7 +38,25 @@ export default function RegisterPage() {
 
     const [errors, setErrors] = useState<FormErrors>({});
     const [loading, setLoading] = useState(false);
+    const [step, setStep] = useState<Step>("form");
+
+    // Datos del paso de verificación
+    const [code, setCode] = useState("");
+    const [codeError, setCodeError] = useState<string | null>(null);
+    const [resendLoading, setResendLoading] = useState(false);
+    const [resendOk, setResendOk] = useState<string | null>(null);
+    const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS);
+    const [devCode, setDevCode] = useState<string | null>(null);
+
+    const codeInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
+
+    // Cuenta regresiva para el botón de reenvío
+    useEffect(() => {
+        if (step !== "verify" || cooldown <= 0) return;
+        const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [step, cooldown]);
 
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
@@ -75,6 +109,7 @@ export default function RegisterPage() {
             const res = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ username, email, password }),
             });
 
@@ -84,13 +119,92 @@ export default function RegisterPage() {
                 throw new Error(data.error || "No se pudo crear la cuenta, mano.");
             }
 
-            router.push("/dashboard");
-            router.refresh();
+            // El backend exige verificar el correo antes de dejar entrar
+            setDevCode(data.dev_code ?? null);
+            setCode("");
+            setCodeError(null);
+            setResendOk(null);
+            setCooldown(RESEND_COOLDOWN_SECONDS);
+            setStep("verify");
+            setTimeout(() => codeInputRef.current?.focus(), 120);
         } catch (err: any) {
             setErrors({ global: err.message || "Error al conectar con el servidor." });
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleVerify = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (code.length !== 6) {
+            setCodeError("El código tiene 6 dígitos.");
+            return;
+        }
+
+        setCodeError(null);
+        setLoading(true);
+
+        try {
+            const res = await fetch("/api/auth/verify-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ email, code }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "El código no es válido.");
+            }
+
+            // El backend devuelve la cookie de sesión: entramos directo
+            setStep("done");
+            router.push("/dashboard");
+            router.refresh();
+        } catch (err: any) {
+            setCodeError(err.message || "No se pudo validar el código.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResend = async () => {
+        setResendLoading(true);
+        setResendOk(null);
+        setCodeError(null);
+
+        try {
+            const res = await fetch("/api/auth/resend-verification", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "No se pudo reenviar el código.");
+            }
+
+            setDevCode(data.dev_code ?? null);
+            setResendOk("Te enviamos un código nuevo. Revisá tu correo.");
+            setCooldown(RESEND_COOLDOWN_SECONDS);
+            setTimeout(() => codeInputRef.current?.focus(), 120);
+        } catch (err: any) {
+            setCodeError(err.message || "No se pudo reenviar el código.");
+        } finally {
+            setResendLoading(false);
+        }
+    };
+
+    const goBackToForm = () => {
+        setStep("form");
+        setCode("");
+        setCodeError(null);
+        setResendOk(null);
+        setDevCode(null);
     };
 
     return (
@@ -115,142 +229,241 @@ export default function RegisterPage() {
                             Vibe<span className="bg-gradient-to-r from-indigo-400 to-pink-400 bg-clip-text text-transparent">Planner</span>
                         </h1>
                         <p className="text-[10px] font-black text-indigo-400 tracking-widest uppercase mt-1">
-                            Crear Nueva Cuenta
+                            {step === "form" ? "Crear Nueva Cuenta" : "Verificación de Correo"}
                         </p>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <AnimatePresence mode="popLayout">
-                        {errors.global && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                className="flex items-center gap-2.5 rounded-xl bg-rose-500/5 p-3.5 text-xs font-bold text-rose-400 border border-rose-500/10"
-                            >
+                {/* ======================================================
+                    PASO 1 · FORMULARIO DE REGISTRO
+                    ====================================================== */}
+                {step === "form" && (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <AnimatePresence mode="popLayout">
+                            {errors.global && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    className="flex items-center gap-2.5 rounded-xl bg-rose-500/5 p-3.5 text-xs font-bold text-rose-400 border border-rose-500/10"
+                                >
+                                    <ShieldAlert className="w-4 h-4 shrink-0 text-rose-500" />
+                                    <span>{errors.global}</span>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Usuario */}
+                        <div className="space-y-1.5 group">
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1.5">
+                                <User className="w-3 h-3" /> Nombre de Usuario
+                            </label>
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className={`w-full rounded-xl bg-slate-950/80 border px-4 py-3 text-xs font-bold text-white placeholder-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 ${errors.username ? "border-rose-500/50 focus:border-rose-500" : "border-slate-800 focus:border-indigo-500/70"
+                                    }`}
+                                placeholder="Ej: juan_perez"
+                            />
+                            <AnimatePresence>
+                                {errors.username && (
+                                    <motion.p initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[10px] font-black uppercase tracking-wide text-rose-400 mt-1 pl-1 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3 text-rose-500" /> {errors.username}
+                                    </motion.p>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Correo */}
+                        <div className="space-y-1.5 group">
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1.5">
+                                <Mail className="w-3 h-3" /> Correo Electrónico
+                            </label>
+                            <input
+                                type="text"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className={`w-full rounded-xl bg-slate-950/80 border px-4 py-3 text-xs font-bold text-white placeholder-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 ${errors.email ? "border-rose-500/50 focus:border-rose-500" : "border-slate-800 focus:border-indigo-500/70"
+                                    }`}
+                                placeholder="tu@correo.com"
+                            />
+                            <AnimatePresence>
+                                {errors.email && (
+                                    <motion.p initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[10px] font-black uppercase tracking-wide text-rose-400 mt-1 pl-1 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3 text-rose-500" /> {errors.email}
+                                    </motion.p>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Contraseña */}
+                        <div className="space-y-1.5 group">
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1.5">
+                                <Lock className="w-3 h-3" /> Contraseña
+                            </label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className={`w-full rounded-xl bg-slate-950/80 border px-4 py-3 text-xs font-bold text-white placeholder-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 font-mono ${errors.password ? "border-rose-500/50 focus:border-rose-500" : "border-slate-800 focus:border-indigo-500/70"
+                                    }`}
+                                placeholder="Mínimo 6 caracteres"
+                            />
+                            <AnimatePresence>
+                                {errors.password && (
+                                    <motion.p initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[10px] font-black uppercase tracking-wide text-rose-400 mt-1 pl-1 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3 text-rose-500" /> {errors.password}
+                                    </motion.p>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Confirmar Contraseña */}
+                        <div className="space-y-1.5 group">
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1.5">
+                                <Lock className="w-3 h-3" /> Confirmar Contraseña
+                            </label>
+                            <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className={`w-full rounded-xl bg-slate-950/80 border px-4 py-3 text-xs font-bold text-white placeholder-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 font-mono ${errors.confirmPassword ? "border-rose-500/50 focus:border-rose-500" : "border-slate-800 focus:border-indigo-500/70"
+                                    }`}
+                                placeholder="••••••••"
+                            />
+                            <AnimatePresence>
+                                {errors.confirmPassword && (
+                                    <motion.p initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[10px] font-black uppercase tracking-wide text-rose-400 mt-1 pl-1 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3 text-rose-500" /> {errors.confirmPassword}
+                                    </motion.p>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Botón de Envío */}
+                        <motion.button
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                            type="submit"
+                            disabled={loading}
+                            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-600/10 transition-all duration-300 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:pointer-events-none mt-2"
+                        >
+                            {loading ? (
+                                <div className="flex items-center justify-center gap-2">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    <span>Configurando tu entorno...</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center gap-1.5">
+                                    Crear Cuenta y Verificar <UserPlus className="w-3.5 h-3.5" />
+                                </div>
+                            )}
+                        </motion.button>
+                    </form>
+                )}
+
+                {/* ======================================================
+                    PASO 2 · CÓDIGO DE VERIFICACIÓN
+                    ====================================================== */}
+                {step === "verify" && (
+                    <form onSubmit={handleVerify} className="space-y-4">
+                        <div className="flex items-start gap-2.5 rounded-xl bg-indigo-500/5 p-3.5 text-xs font-bold text-indigo-300 border border-indigo-500/10">
+                            <Mail className="w-4 h-4 shrink-0 text-indigo-400 mt-0.5" />
+                            <span>
+                                Mandamos un código de 6 dígitos a <strong className="text-white">{email}</strong>. Ingresalo para
+                                activar tu cuenta.
+                            </span>
+                        </div>
+
+                        {devCode && (
+                            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5 text-xs font-bold text-amber-300">
+                                Modo desarrollo (sin SMTP configurado): tu código es{" "}
+                                <span className="font-mono text-base tracking-widest">{devCode}</span>
+                            </div>
+                        )}
+
+                        {codeError && (
+                            <div className="flex items-center gap-2.5 rounded-xl bg-rose-500/5 p-3.5 text-xs font-bold text-rose-400 border border-rose-500/10">
                                 <ShieldAlert className="w-4 h-4 shrink-0 text-rose-500" />
-                                <span>{errors.global}</span>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Usuario */}
-                    <div className="space-y-1.5 group">
-                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1.5">
-                            <User className="w-3 h-3" /> Nombre de Usuario
-                        </label>
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            className={`w-full rounded-xl bg-slate-950/80 border px-4 py-3 text-xs font-bold text-white placeholder-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 ${errors.username ? "border-rose-500/50 focus:border-rose-500" : "border-slate-800 focus:border-indigo-500/70"
-                                }`}
-                            placeholder="Ej: juan_perez"
-                        />
-                        <AnimatePresence>
-                            {errors.username && (
-                                <motion.p initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[10px] font-black uppercase tracking-wide text-rose-400 mt-1 pl-1 flex items-center gap-1">
-                                    <AlertCircle className="w-3 h-3 text-rose-500" /> {errors.username}
-                                </motion.p>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
-                    {/* Correo */}
-                    <div className="space-y-1.5 group">
-                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1.5">
-                            <Mail className="w-3 h-3" /> Correo Electrónico
-                        </label>
-                        <input
-                            type="text"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className={`w-full rounded-xl bg-slate-950/80 border px-4 py-3 text-xs font-bold text-white placeholder-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 ${errors.email ? "border-rose-500/50 focus:border-rose-500" : "border-slate-800 focus:border-indigo-500/70"
-                                }`}
-                            placeholder="tu@correo.com"
-                        />
-                        <AnimatePresence>
-                            {errors.email && (
-                                <motion.p initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[10px] font-black uppercase tracking-wide text-rose-400 mt-1 pl-1 flex items-center gap-1">
-                                    <AlertCircle className="w-3 h-3 text-rose-500" /> {errors.email}
-                                </motion.p>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
-                    {/* Contraseña */}
-                    <div className="space-y-1.5 group">
-                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1.5">
-                            <Lock className="w-3 h-3" /> Contraseña
-                        </label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className={`w-full rounded-xl bg-slate-950/80 border px-4 py-3 text-xs font-bold text-white placeholder-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 font-mono ${errors.password ? "border-rose-500/50 focus:border-rose-500" : "border-slate-800 focus:border-indigo-500/70"
-                                }`}
-                            placeholder="Mínimo 6 caracteres"
-                        />
-                        <AnimatePresence>
-                            {errors.password && (
-                                <motion.p initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[10px] font-black uppercase tracking-wide text-rose-400 mt-1 pl-1 flex items-center gap-1">
-                                    <AlertCircle className="w-3 h-3 text-rose-500" /> {errors.password}
-                                </motion.p>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
-                    {/* Confirmar Contraseña */}
-                    <div className="space-y-1.5 group">
-                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1.5">
-                            <Lock className="w-3 h-3" /> Confirmar Contraseña
-                        </label>
-                        <input
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            className={`w-full rounded-xl bg-slate-950/80 border px-4 py-3 text-xs font-bold text-white placeholder-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 font-mono ${errors.confirmPassword ? "border-rose-500/50 focus:border-rose-500" : "border-slate-800 focus:border-indigo-500/70"
-                                }`}
-                            placeholder="••••••••"
-                        />
-                        <AnimatePresence>
-                            {errors.confirmPassword && (
-                                <motion.p initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[10px] font-black uppercase tracking-wide text-rose-400 mt-1 pl-1 flex items-center gap-1">
-                                    <AlertCircle className="w-3 h-3 text-rose-500" /> {errors.confirmPassword}
-                                </motion.p>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
-                    {/* Botón de Envío */}
-                    <motion.button
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.99 }}
-                        type="submit"
-                        disabled={loading}
-                        className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-600/10 transition-all duration-300 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:pointer-events-none mt-2"
-                    >
-                        {loading ? (
-                            <div className="flex items-center justify-center gap-2">
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                <span>Configurando tu entorno...</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center gap-1.5">
-                                Registrarse e Ingresar <UserPlus className="w-3.5 h-3.5" />
+                                <span>{codeError}</span>
                             </div>
                         )}
-                    </motion.button>
-                </form>
+
+                        {resendOk && (
+                            <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/5 p-3.5 text-xs font-bold text-emerald-400 border border-emerald-500/10">
+                                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                                <span>{resendOk}</span>
+                            </div>
+                        )}
+
+                        <div className="space-y-1.5 group">
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 group-focus-within:text-indigo-400 transition-colors flex items-center gap-1.5">
+                                <KeyRound className="w-3 h-3" /> Código de Seguridad
+                            </label>
+                            <input
+                                ref={codeInputRef}
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={6}
+                                value={code}
+                                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                className={`w-full rounded-xl bg-slate-950/80 border px-4 py-4 text-center font-mono text-2xl tracking-[0.6em] text-white placeholder-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all duration-300 ${codeError ? "border-rose-500/50 focus:border-rose-500" : "border-slate-800 focus:border-indigo-500/70"
+                                    }`}
+                                placeholder="000000"
+                            />
+                        </div>
+
+                        <motion.button
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                            type="submit"
+                            disabled={loading || code.length !== 6}
+                            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-600/10 transition-all duration-300 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:pointer-events-none"
+                        >
+                            {loading ? (
+                                <div className="flex items-center justify-center gap-2">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    <span>Validando código...</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center gap-1.5">
+                                    Confirmar Correo <CheckCircle2 className="w-3.5 h-3.5" />
+                                </div>
+                            )}
+                        </motion.button>
+
+                        <div className="flex items-center justify-between pt-1">
+                            <button
+                                type="button"
+                                onClick={goBackToForm}
+                                className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-indigo-400 transition-colors"
+                            >
+                                <ArrowLeft className="w-3 h-3" /> Usar otro correo
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleResend}
+                                disabled={resendLoading || cooldown > 0}
+                                className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-indigo-400 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                            >
+                                {resendLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCw className="w-3 h-3" />}
+                                {cooldown > 0 ? `Reenviar (${cooldown}s)` : "Reenviar código"}
+                            </button>
+                        </div>
+                    </form>
+                )}
 
                 {/* Link a login */}
-                <div className="pt-4 text-center text-xs font-bold text-slate-500 border-t border-slate-800/60 flex items-center justify-center gap-1">
-                    <span>¿YA TENÉS CUENTA?</span>
-                    <Link href="/login" className="text-indigo-400 hover:text-indigo-300 uppercase tracking-wide font-black transition-colors pl-0.5">
-                        Inicia sesión
-                    </Link>
-                </div>
+                {step === "form" && (
+                    <div className="pt-4 text-center text-xs font-bold text-slate-500 border-t border-slate-800/60 flex items-center justify-center gap-1">
+                        <span>¿YA TENÉS CUENTA?</span>
+                        <Link href="/login" className="text-indigo-400 hover:text-indigo-300 uppercase tracking-wide font-black transition-colors pl-0.5">
+                            Inicia sesión
+                        </Link>
+                    </div>
+                )}
             </motion.div>
         </div>
     );

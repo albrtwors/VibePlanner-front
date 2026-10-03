@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 import { notify } from "@/utils/toast";
 
 interface Message {
@@ -42,7 +42,7 @@ export default function AssistantChatWindow({ closeChat, onApplyExtractedData }:
         setLoading(true);
 
         try {
-            const res = await fetch(`${endpoint}api/assistant/chat`, {
+            const res = await fetch(apiUrl("/api/assistant/chat"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 // CORRECCIÓN CENTRAL: Solo viaja el string limpio del usuario

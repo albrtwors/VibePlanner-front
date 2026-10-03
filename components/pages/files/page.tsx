@@ -7,7 +7,7 @@ import { Search, Plus, FolderKanban, Loader2, Inbox } from "lucide-react";
 import GenericButton from "@/components/buttons/GenericButton";
 import FileCard from "@/components/cards/FileCard";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface FileRepertoire {
     id: number;
@@ -58,7 +58,7 @@ export default function FilesIndex() {
                 queryParams.append("tematica", search);
             }
 
-            const res = await fetch(`${endpoint}api/files/?${queryParams.toString()}`);
+            const res = await fetch(apiUrl(`/api/files/?${queryParams.toString()}`));
             if (!res.ok) throw new Error("Error en la petición de cancioneros");
 
             const data = await res.json();
@@ -85,7 +85,7 @@ export default function FilesIndex() {
         if (!confirmed) return;
 
         try {
-            const res = await fetch(`${endpoint}api/files/${id}`, {
+            const res = await fetch(apiUrl(`/api/files/${id}`), {
                 method: "DELETE",
             });
 

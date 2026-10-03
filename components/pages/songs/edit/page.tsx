@@ -10,7 +10,7 @@ import SongStructureInput from "@/components/forms/SongStructureInput";
 import SongStructureViewer from "@/components/songs/SongStructureViewer";
 import { parseRawTextToStructure } from "@/utils/songParser";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface SongPart {
     title: string;
@@ -44,7 +44,7 @@ export default function EditSongPageClient({ params }: EditSongPageProps) {
     useEffect(() => {
         const fetchSongData = async () => {
             try {
-                const res = await fetch(`${endpoint}/api/songs/${id}`);
+                const res = await fetch(apiUrl(`/api/songs/${id}`));
                 if (!res.ok) throw new Error("No se pudo obtener la información de la canción");
 
                 const data = await res.json();
@@ -97,7 +97,7 @@ export default function EditSongPageClient({ params }: EditSongPageProps) {
         const finalJsonStructure = parseRawTextToStructure(structureText);
 
         try {
-            const response = await fetch(`${endpoint}/api/songs/${id}`, {
+            const response = await fetch(apiUrl(`/api/songs/${id}`), {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

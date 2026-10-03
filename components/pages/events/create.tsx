@@ -17,7 +17,7 @@ import EventInventoryView from "@/components/events/EventInventoryView";
 import ChatBotFAB from "@/components/chatbot/ChatbotFAB";
 import AssistantChatWindow from "@/components/chatbot/AssistantChatWindow";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface CatalogItem {
     id: number;
@@ -102,7 +102,7 @@ export default function CreateEvent() {
     const [selectedInventory, setSelectedInventory] = useState<SelectedInventoryItem[]>([]);
 
     useEffect(() => {
-        fetch(`${endpoint}api/inventory`)
+        fetch(apiUrl("/api/inventory"))
             .then((res) => res.json())
             .then((data) => setCatalog(data))
             .catch(() => notify.error("Error al sincronizar catálogo de bodega."));
@@ -274,7 +274,7 @@ export default function CreateEvent() {
         };
 
         try {
-            const res = await fetch(`${endpoint}api/events`, {
+            const res = await fetch(apiUrl("/api/events"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),

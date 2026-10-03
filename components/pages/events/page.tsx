@@ -7,7 +7,7 @@ import { Calendar, Plus, CalendarRange, Users, Loader2, CalendarX } from "lucide
 import GenericButton from "@/components/buttons/GenericButton";
 import EventCard from "@/components/cards/EventCard";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface EventPayload {
     id: number;
@@ -64,7 +64,7 @@ export default function EventsIndex() {
                 queryParams.append("start_date", startDate);
             }
 
-            const res = await fetch(`${endpoint}api/events?${queryParams.toString()}`);
+            const res = await fetch(apiUrl(`/api/events?${queryParams.toString()}`));
             if (!res.ok) throw new Error("Error cargando el cronograma de eventos");
 
             const data = await res.json();
@@ -91,7 +91,7 @@ export default function EventsIndex() {
         if (!confirmed) return;
 
         try {
-            const res = await fetch(`${endpoint}api/events/${id}`, {
+            const res = await fetch(apiUrl(`/api/events/${id}`), {
                 method: "DELETE",
             });
 

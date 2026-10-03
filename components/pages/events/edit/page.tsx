@@ -11,7 +11,7 @@ import EventInventoryView from "@/components/events/EventInventoryView";
 import ChatBotFAB from "@/components/chatbot/ChatbotFAB";
 import AssistantChatWindow from "@/components/chatbot/AssistantChatWindow";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface CatalogItem {
     id: number;
@@ -62,10 +62,10 @@ export default function EditEvent({ params }: EditEventProps) {
     // ==========================================
     useEffect(() => {
         // 1. Sincronizar catálogo global de bodega
-        const loadCatalog = fetch(`${endpoint}api/inventory`).then((res) => res.json());
+        const loadCatalog = fetch(apiUrl("/api/inventory")).then((res) => res.json());
 
         // 2. Traer la data estructural del evento a editar
-        const loadEvent = fetch(`${endpoint}api/events/${id}`).then((res) => {
+        const loadEvent = fetch(apiUrl(`/api/events/${id}`)).then((res) => {
             if (!res.ok) throw new Error("No se pudo obtener el evento solicitado.");
             return res.json();
         });
@@ -236,7 +236,7 @@ export default function EditEvent({ params }: EditEventProps) {
 
         try {
             // CORREGIDO: Llamada por método PUT al ID específico del evento
-            const res = await fetch(`${endpoint}api/events/${id}`, {
+            const res = await fetch(apiUrl(`/api/events/${id}`), {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),

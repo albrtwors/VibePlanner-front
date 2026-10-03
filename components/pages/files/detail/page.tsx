@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 import SongInFileDetailCard from "@/components/cards/SongInFileCard";
 
 interface DetailedSong {
@@ -34,7 +34,7 @@ export default function FileDetailPage({ params }: { params: Promise<{ id: strin
     useEffect(() => {
         const fetchFileDetail = async () => {
             try {
-                const res = await fetch(`${endpoint}api/files/${id}`);
+                const res = await fetch(apiUrl(`/api/files/${id}`));
                 if (!res.ok) throw new Error("No se pudo obtener la información del cancionero.");
 
                 const data = await res.json();

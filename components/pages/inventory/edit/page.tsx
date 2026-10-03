@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import GenericButton from "@/components/buttons/GenericButton";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -33,7 +33,7 @@ export default function EditInventoryItem({ params }: PageProps) {
     useEffect(() => {
         const fetchItemData = async () => {
             try {
-                const res = await fetch(`${endpoint}api/inventory/${id}`);
+                const res = await fetch(apiUrl(`/api/inventory/${id}`));
                 const data = await res.json();
 
                 if (!res.ok) throw new Error(data.error || "No se pudo obtener el artículo.");
@@ -76,7 +76,7 @@ export default function EditInventoryItem({ params }: PageProps) {
         };
 
         try {
-            const res = await fetch(`${endpoint}api/inventory/${id}`, {
+            const res = await fetch(apiUrl(`/api/inventory/${id}`), {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),

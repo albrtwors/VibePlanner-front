@@ -1,7 +1,7 @@
 // components/chatbot/InventoryChatAssistant.tsx
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 import { notify } from "@/utils/toast";
 
 interface AIItemPayload {
@@ -49,7 +49,7 @@ export default function InventoryChatAssistant({ closeChat, onAutofillForm }: In
         setIsLoading(true);
 
         try {
-            const res = await fetch(`${endpoint}api/inventory/upload-ia`, {
+            const res = await fetch(apiUrl("/api/inventory/upload-ia"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ prompt: userText })

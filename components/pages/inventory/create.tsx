@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import GenericButton from "@/components/buttons/GenericButton";
 import { notify } from "@/utils/toast";
-import { endpoint } from "@/consts/backEndpoint";
+import { apiUrl } from "@/consts/backEndpoint";
 
 // Importación de los componentes del chat
 import ChatBotFAB from "@/components/chatbot/ChatbotFAB";
@@ -67,7 +67,7 @@ export default function CreateInventoryItem() {
         };
 
         try {
-            const res = await fetch(`${endpoint}api/inventory`, {
+            const res = await fetch(apiUrl("/api/inventory"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
