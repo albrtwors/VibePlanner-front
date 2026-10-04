@@ -1,4 +1,5 @@
 // utils/songParser.ts
+import { isChordToken } from "@/utils/chords";
 
 interface SongPart {
     title: string;
@@ -9,41 +10,67 @@ interface ParsedStructure {
     parts: SongPart[];
 }
 
+// Un marcador de sección ocupa la línea entera: [CORO], [Verso 1], [Puente].
+const SECTION_LINE_RE = /^\s*\[([^\]]+)\]\s*$/;
+
 /**
- * Convierte el texto plano con etiquetas tipo [CORO] o [VERSO]
- * al formato JSON estructurado que requiere la Base de Datos.
+ * Devuelve el título de la sección si la línea es un marcador, o null si es
+ * contenido normal.
+ *
+ * Clave: los acordes inline también usan corchetes ([Am], [C], [F#sus4]). Un
+ * [Am] suelto tiene que ser una fila de acordes, no una sección "am". Si no
+ * validáramos el acorde, cualquier letra con acordes se partiría en secciones
+ * basura y la transposición no tendría dónde trabajar.
+ */
+function sectionTitle(line: string): string | null {
+    const match = line.match(SECTION_LINE_RE);
+    if (!match) return null;
+
+    const tag = match[1].trim();
+    if (!tag) return null;
+    if (isChordToken(tag)) return null;
+
+    return tag.toLowerCase();
+}
+
+/**
+ * Convierte el texto plano con etiquetas tipo [CORO] o [VERSO] al formato JSON
+ * estructurado que requiere la base. Los acordes inline [Am] se conservan
+ * dentro del content de cada parte.
  */
 export function parseRawTextToStructure(rawText: string): ParsedStructure {
     if (!rawText.trim()) return { parts: [] };
 
-    // Regex para capturar bloques que inicien con [Nombre]
-    const sectionRegex = /\[([^\]]+)\]/g;
     const parts: SongPart[] = [];
+    let currentTitle: string | null = null;
+    let buffer: string[] = [];
 
-    const matches = [...rawText.matchAll(sectionRegex)];
+    const pushBlock = (title: string) => {
+        parts.push({ title, content: buffer.join("\n").trim() });
+        buffer = [];
+    };
 
-    if (matches.length === 0) {
-        // Si el usuario no usó corchetes, guardamos todo como un único verso por defecto
-        parts.push({
-            title: "verso 1",
-            content: rawText.trim()
-        });
-        return { parts };
+    for (const line of rawText.split("\n")) {
+        const title = sectionTitle(line);
+
+        if (title !== null) {
+            // Cerramos el bloque anterior; si había texto suelto antes de la
+            // primera sección, no se pierde: cae en un "verso 1".
+            if (buffer.some((l) => l.trim() !== "")) {
+                pushBlock(currentTitle ?? "verso 1");
+            } else {
+                buffer = [];
+            }
+            currentTitle = title;
+        } else {
+            buffer.push(line);
+        }
     }
 
-    for (let i = 0; i < matches.length; i++) {
-        const currentMatch = matches[i];
-        const title = currentMatch[1].toLowerCase().trim();
-
-        // El contenido empieza justo después del corchete de cierre del título actual
-        const startIndex = currentMatch.index! + currentMatch[0].length;
-
-        // Y termina donde empieza el próximo corchete (o al final de todo el texto)
-        const endIndex = matches[i + 1] ? matches[i + 1].index : rawText.length;
-
-        const content = rawText.substring(startIndex, endIndex).trim();
-
-        parts.push({ title, content });
+    if (currentTitle !== null) {
+        pushBlock(currentTitle);
+    } else if (buffer.some((l) => l.trim() !== "")) {
+        pushBlock("verso 1");
     }
 
     return { parts };

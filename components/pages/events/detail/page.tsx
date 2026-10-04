@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiUrl } from "@/consts/backEndpoint";
 import { notify } from "@/utils/toast";
+import { useClientPermissions } from "@/hooks/useClientPermissions";
 
 interface ItineraryBlock {
     time: string;
@@ -51,6 +52,10 @@ export default function EventDetailPagePage({ params }: PageProps) {
     const [event, setEvent] = useState<EventDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+
+    // Cargar asistencia y editar el plan son cosas de organización (events.edit).
+    const { can } = useClientPermissions();
+    const canManageEvent = can("events.edit");
 
     useEffect(() => {
         setMounted(true);
@@ -102,19 +107,22 @@ export default function EventDetailPagePage({ params }: PageProps) {
                     </h1>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                    {/* ENLACE DIRECTO AL LOTE DINÁMICO DE PARTICIPANTES */}
-                    <Link href={`/events/${id}/participants`}>
-                        <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-950/20 active:scale-95">
-                            👥 Gestionar Asistencia
-                        </button>
-                    </Link>
-                    <Link href={`/events/${id}/edit`}>
-                        <button className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95">
-                            Editar Plan
-                        </button>
-                    </Link>
-                </div>
+                {/* Acciones de organización: si el rol no puede, no se renderiza nada */}
+                {canManageEvent && (
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        {/* ENLACE DIRECTO AL LOTE DINÁMICO DE PARTICIPANTES */}
+                        <Link href={`/events/${id}/participants`}>
+                            <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-950/20 active:scale-95">
+                                👥 Gestionar Asistencia
+                            </button>
+                        </Link>
+                        <Link href={`/events/${id}/edit`}>
+                            <button className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95">
+                                Editar Plan
+                            </button>
+                        </Link>
+                    </div>
+                )}
             </div>
 
             {/* CUADRICULA PRINCIPAL: METADATA */}
@@ -131,14 +139,22 @@ export default function EventDetailPagePage({ params }: PageProps) {
                 </div>
                 <div className="flex flex-col gap-1 border-t sm:border-t-0 border-slate-800 pt-3 sm:pt-0 sm:pl-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Métricas Operacionales</span>
-                    {/* RECUADRO CON LINK HACIA LOS PARTICIPANTES REGISTRADOS */}
-                    <Link href={`/events/${id}/participants`} className="group flex flex-wrap items-center gap-4 text-xs font-bold text-slate-300 mt-0.5 hover:text-indigo-400 transition-colors">
-                        <span>👤 {event.staff?.length || 0} Operadores</span>
-                        <span>📦 {event.inventory?.length || 0} Insumos</span>
-                        <span className="text-indigo-400 bg-indigo-950/40 border border-indigo-800/40 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                            → Ver Asistentes ({event.participants?.length || 0})
-                        </span>
-                    </Link>
+                    {/* Métricas: el acceso a la lista de asistentes es parte de la gestión del evento */}
+                    {canManageEvent ? (
+                        <Link href={`/events/${id}/participants`} className="group flex flex-wrap items-center gap-4 text-xs font-bold text-slate-300 mt-0.5 hover:text-indigo-400 transition-colors">
+                            <span>👤 {event.staff?.length || 0} Operadores</span>
+                            <span>📦 {event.inventory?.length || 0} Insumos</span>
+                            <span className="text-indigo-400 bg-indigo-950/40 border border-indigo-800/40 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                → Ver Asistentes ({event.participants?.length || 0})
+                            </span>
+                        </Link>
+                    ) : (
+                        <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-300 mt-0.5">
+                            <span>👤 {event.staff?.length || 0} Operadores</span>
+                            <span>📦 {event.inventory?.length || 0} Insumos</span>
+                            <span>👥 {event.participants?.length || 0} Asistentes</span>
+                        </div>
+                    )}
                 </div>
             </div>
 

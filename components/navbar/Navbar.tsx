@@ -84,6 +84,7 @@ export default function Navbar() {
         { name: "Eventos", href: "/events", requires: ["events.view"] },
         { name: "Gastos", href: "/expenses", requires: ["expenses.view"] },
         { name: "Canciones", href: "/songs", requires: ["songs.view"] },
+        { name: "Moderación", href: "/songs/moderation", requires: ["songs.moderate"] },
         { name: "Armonizar", href: "/chords/create", requires: ["songs.edit"] },
         { name: "Repertorio", href: "/files", requires: ["files.view"] },
         { name: "Inventario", href: "/inventory", requires: ["inventory.view"] },

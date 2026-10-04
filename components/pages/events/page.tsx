@@ -8,6 +8,7 @@ import GenericButton from "@/components/buttons/GenericButton";
 import EventCard from "@/components/cards/EventCard";
 import { notify } from "@/utils/toast";
 import { apiUrl } from "@/consts/backEndpoint";
+import { useClientPermissions } from "@/hooks/useClientPermissions";
 
 interface EventPayload {
     id: number;
@@ -48,6 +49,12 @@ const cardVariants = {
 export default function EventsIndex() {
     const [events, setEvents] = useState<EventPayload[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Cada botón se muestra solo si el rol lo permite: el backend igual los rechaza.
+    const { can } = useClientPermissions();
+    const canCreate = can("events.create");
+    const canEdit = can("events.edit");
+    const canDelete = can("events.delete");
 
     // Filtros de búsqueda
     const [audienceFilter, setAudienceFilter] = useState("");
@@ -157,22 +164,24 @@ export default function EventsIndex() {
                     </div>
                 </div>
 
-                <Link href="/events/create" className="shrink-0">
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <GenericButton color="primary">
-                            <span className="flex items-center gap-1.5 font-black uppercase text-xs tracking-wider">
-                                <Plus className="w-4 h-4" /> Nuevo Evento
-                            </span>
-                        </GenericButton>
-                    </motion.div>
-                </Link>
+                {canCreate && (
+                    <Link href="/events/create" className="shrink-0">
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <GenericButton color="primary">
+                                <span className="flex items-center gap-1.5 font-black uppercase text-xs tracking-wider">
+                                    <Plus className="w-4 h-4" /> Nuevo Evento
+                                </span>
+                            </GenericButton>
+                        </motion.div>
+                    </Link>
+                )}
             </motion.div>
 
             {/* Lista Reactiva de Eventos */}
             <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between text-xs font-black text-slate-500 uppercase tracking-widest px-2 select-none">
                     <span>Cronograma Activo ({events.length})</span>
-                    <span>Acciones</span>
+                    {(canEdit || canDelete) && <span>Acciones</span>}
                 </div>
 
                 <div className="relative min-h-[220px]">
@@ -226,6 +235,8 @@ export default function EventsIndex() {
                                             targetAudience={event.target_audience}
                                             staffCount={event.staff?.length || 0}
                                             inventoryCount={event.inventory?.length || 0}
+                                            canEdit={canEdit}
+                                            canDelete={canDelete}
                                             onDelete={() => handleDelete(event.id, event.name)}
                                         />
                                     </motion.div>

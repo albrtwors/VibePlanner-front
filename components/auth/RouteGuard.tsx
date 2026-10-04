@@ -18,6 +18,7 @@ const ROUTE_PERMISSIONS: Array<[string, string[]]> = [
     ["/dashboard", ["dashboard.view"]],
     ["/events", ["events.view"]],
     ["/expenses", ["expenses.view"]],
+    ["/songs/moderation", ["songs.moderate"]],
     ["/songs", ["songs.view"]],
     ["/chords", ["songs.edit"]],
     ["/files", ["files.view"]],
@@ -27,7 +28,28 @@ const ROUTE_PERMISSIONS: Array<[string, string[]]> = [
     ["/chatbot", ["ai.use"]],
 ];
 
+/**
+ * Rutas exactas que NO alcanzan con el permiso general del módulo:
+ * hay que revisarlas antes porque '/events/5/participants' empieza con '/events'.
+ */
+const ROUTE_PERMISSION_PATTERNS: Array<[RegExp, string[]]> = [
+    [/^\/events\/create\/?$/, ["events.create"]],
+    [/^\/events\/[^/]+\/edit\/?$/, ["events.edit"]],
+    [/^\/events\/[^/]+\/participants\/?$/, ["events.edit"]],
+    [/^\/files\/create\/?$/, ["files.create"]],
+    [/^\/files\/[^/]+\/edit\/?$/, ["files.edit"]],
+    [/^\/songs\/create\/?$/, ["songs.create"]],
+    [/^\/songs\/[^/]+\/edit\/?$/, ["songs.edit"]],
+    [/^\/songs\/moderation\/?$/, ["songs.moderate"]],
+    [/^\/inventory\/create\/?$/, ["inventory.create"]],
+    [/^\/inventory\/[^/]+\/edit\/?$/, ["inventory.edit"]],
+];
+
 function requiredPermission(pathname: string): string[] | null {
+    // Primero los patrones exactos; si no, el prefijo más largo que coincida.
+    const exact = ROUTE_PERMISSION_PATTERNS.find(([pattern]) => pattern.test(pathname));
+    if (exact) return exact[1];
+
     const match = ROUTE_PERMISSIONS.find(([prefix]) => pathname.startsWith(prefix));
     return match ? match[1] : null;
 }

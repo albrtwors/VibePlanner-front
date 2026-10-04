@@ -6,6 +6,7 @@ import { apiUrl } from "@/consts/backEndpoint";
 import ChatBotFAB from "@/components/chatbot/ChatbotFAB";
 import ChatBotWindow from "@/components/chatbot/ChatbotParticipantsWindow";
 import { notify } from "@/utils/toast";
+import { useClientPermissions } from "@/hooks/useClientPermissions";
 import {
     detectColumnMapping,
     csvRowsToBlocks,
@@ -71,6 +72,11 @@ function normalizeBlocks(rawBlocks: any[]): ParticipantBlock[] {
 export default function AddParticipantsPage() {
     const { id: eventId } = useParams();
     const router = useRouter();
+
+    // Esta pantalla SOLO sirve para cargar/injectar asistentes (endpoint events.edit).
+    // Si el rol no puede, ni siquiera se dibuja el formulario.
+    const { can, ready } = useClientPermissions();
+    const canManageAttendance = can("events.edit");
 
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
@@ -326,6 +332,25 @@ export default function AddParticipantsPage() {
             setLoading(false);
         }
     };
+
+    // Sin permiso no hay formulario: el POST /participants/json-sync pide events.edit.
+    if (ready && !canManageAttendance) {
+        return (
+            <div className="max-w-xl mx-auto px-4 py-24 text-center">
+                <h1 className="text-xl font-black uppercase text-slate-200">Acceso restringido</h1>
+                <p className="text-sm text-slate-500 mt-2">
+                    Tu rol no puede administrar la asistencia de los eventos.
+                </p>
+                <button
+                    type="button"
+                    onClick={() => router.push(`/events/${eventId}`)}
+                    className="mt-6 px-4 py-2 text-xs font-bold bg-slate-900 border border-slate-800 rounded-xl text-slate-300 hover:bg-slate-800 transition-all active:scale-95"
+                >
+                    ← Volver al evento
+                </button>
+            </div>
+        );
+    }
 
     if (fetching) {
         return (

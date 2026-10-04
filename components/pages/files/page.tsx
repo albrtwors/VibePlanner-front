@@ -8,6 +8,7 @@ import GenericButton from "@/components/buttons/GenericButton";
 import FileCard from "@/components/cards/FileCard";
 import { notify } from "@/utils/toast";
 import { apiUrl } from "@/consts/backEndpoint";
+import { useClientPermissions } from "@/hooks/useClientPermissions";
 
 interface FileRepertoire {
     id: number;
@@ -47,6 +48,12 @@ export default function FilesIndex() {
     const [search, setSearch] = useState("");
     const [files, setFiles] = useState<FileRepertoire[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Oculta crear/editar/borrar según el rol; el backend sigue validando.
+    const { can } = useClientPermissions();
+    const canCreate = can("files.create");
+    const canEdit = can("files.edit");
+    const canDelete = can("files.delete");
 
     // Carga los repertorios aplicando filtros dinámicos
     const fetchFiles = async () => {
@@ -137,22 +144,24 @@ export default function FilesIndex() {
                     />
                 </div>
 
-                <Link href="/files/create" className="shrink-0">
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <GenericButton color="primary">
-                            <span className="flex items-center gap-1.5 font-black uppercase text-xs tracking-wider">
-                                <Plus className="w-4 h-4" /> Nuevo Cancionero
-                            </span>
-                        </GenericButton>
-                    </motion.div>
-                </Link>
+                {canCreate && (
+                    <Link href="/files/create" className="shrink-0">
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <GenericButton color="primary">
+                                <span className="flex items-center gap-1.5 font-black uppercase text-xs tracking-wider">
+                                    <Plus className="w-4 h-4" /> Nuevo Cancionero
+                                </span>
+                            </GenericButton>
+                        </motion.div>
+                    </Link>
+                )}
             </motion.div>
 
             {/* Listado Reactivo */}
             <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between text-xs font-black text-slate-500 uppercase tracking-widest px-2 select-none">
                     <span>Lista de Cancioneros ({files.length})</span>
-                    <span>Acciones</span>
+                    {(canEdit || canDelete) && <span>Acciones</span>}
                 </div>
 
                 <div className="relative min-h-[200px]">
@@ -204,6 +213,8 @@ export default function FilesIndex() {
                                             tematica={file.tematica}
                                             songsCount={file.songs_count}
                                             createdAt={file.created_at}
+                                            canEdit={canEdit}
+                                            canDelete={canDelete}
                                             onDelete={() => handleDelete(file.id, file.name)}
                                         />
                                     </motion.div>

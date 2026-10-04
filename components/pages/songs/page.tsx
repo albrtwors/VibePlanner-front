@@ -3,17 +3,24 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Music, Trash2, Edit3, Loader2 } from "lucide-react";
+import { Search, Plus, Music, Loader2, ShieldCheck } from "lucide-react";
 import GenericButton from "@/components/buttons/GenericButton";
 import SongCard from "@/components/cards/SongCard";
 import { notify } from "@/utils/toast";
 import { apiUrl } from "@/consts/backEndpoint";
+import { getClientProfile } from "@/utils/proxy";
+import { hasPermission } from "@/utils/permissions";
+import { SONG_STATUS_OPTIONS } from "@/utils/songStatus";
 
 interface Song {
     id: number;
     name: string;
     author: string | null;
     genre: string | null;
+    key: string | null;
+    status: string;
+    can_edit: boolean;
+    can_review: boolean;
 }
 
 // Variantes de animación para el contenedor de la lista (Efecto Stagger/Cascada)
@@ -35,17 +42,29 @@ const itemVariants = {
 
 export default function SongsIndex() {
     const [search, setSearch] = useState("");
+    const [status, setStatus] = useState("");
     const [songs, setSongs] = useState<Song[]>([]);
     const [loading, setLoading] = useState(true);
+    const [canCreate, setCanCreate] = useState(false);
+    const [canModerate, setCanModerate] = useState(false);
+
+    useEffect(() => {
+        (async () => {
+            const profile = await getClientProfile();
+            setCanCreate(hasPermission(profile?.permissions, "songs.create"));
+            setCanModerate(hasPermission(profile?.permissions, "songs.moderate"));
+        })();
+    }, []);
 
     const fetchSongs = async () => {
         setLoading(true);
         try {
             const queryParams = new URLSearchParams();
             if (search.trim() !== "") {
-                queryParams.append("name", search);
-                queryParams.append("author", search);
-                queryParams.append("genre", search);
+                queryParams.append("search", search);
+            }
+            if (status) {
+                queryParams.append("status", status);
             }
 
             const res = await fetch(apiUrl(`/api/songs/?${queryParams.toString()}`));
@@ -67,7 +86,7 @@ export default function SongsIndex() {
         }, 300);
 
         return () => clearTimeout(delayDebounce);
-    }, [search]);
+    }, [search, status]);
 
     const handleDelete = async (id: number, name: string) => {
         const confirmed = window.confirm(`¿Estás seguro de que deseas eliminar la canción "${name}"?`);
@@ -116,32 +135,60 @@ export default function SongsIndex() {
                 transition={{ duration: 0.4, delay: 0.1 }}
                 className="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center bg-slate-900/40 p-4 rounded-2xl border border-slate-800/80 backdrop-blur-md shadow-lg"
             >
-                <div className="relative flex-1 max-w-md group">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
-                        <Search className="w-4 h-4" />
-                    </span>
-                    <input
-                        type="text"
-                        placeholder="Buscar por título, artista o género..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 focus:bg-slate-950 transition-all duration-300 text-sm"
-                    />
+                <div className="flex flex-1 flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1 max-w-md group">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
+                            <Search className="w-4 h-4" />
+                        </span>
+                        <input
+                            type="text"
+                            placeholder="Buscar por título, artista o género..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 focus:bg-slate-950 transition-all duration-300 text-sm"
+                        />
+                    </div>
+
+                    <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                        className="px-3 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-slate-300 text-sm focus:outline-none focus:border-indigo-500 transition-all"
+                    >
+                        <option value="">Todos los estados</option>
+                        {SONG_STATUS_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
-                <Link href="/songs/create">
-                    <motion.div
-                        whileHover={{ scale: 1.03, y: -1 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="h-full"
-                    >
-                        <GenericButton color="primary">
-                            <span className="flex items-center gap-1.5 justify-center">
-                                <Plus className="w-4 h-4" /> Nueva Canción
-                            </span>
-                        </GenericButton>
-                    </motion.div>
-                </Link>
+                <div className="flex items-center gap-2">
+                    {canModerate && (
+                        <Link href="/songs/moderation">
+                            <motion.div whileHover={{ scale: 1.03, y: -1 }} whileTap={{ scale: 0.98 }}>
+                                <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-sm font-semibold hover:bg-amber-500/20 transition-colors">
+                                    <ShieldCheck className="w-4 h-4" /> Moderación
+                                </div>
+                            </motion.div>
+                        </Link>
+                    )}
+                    {canCreate && (
+                        <Link href="/songs/create">
+                            <motion.div
+                                whileHover={{ scale: 1.03, y: -1 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="h-full"
+                            >
+                                <GenericButton color="primary">
+                                    <span className="flex items-center gap-1.5 justify-center">
+                                        <Plus className="w-4 h-4" /> Nueva Canción
+                                    </span>
+                                </GenericButton>
+                            </motion.div>
+                        </Link>
+                    )}
+                </div>
             </motion.div>
 
             {/* Lista de Contenido Reactiva */}
@@ -196,8 +243,10 @@ export default function SongsIndex() {
                                         title={song.name}
                                         artist={song.author || "Autor Desconocido"}
                                         genre={song.genre || undefined}
-                                        onEdit={() => notify.success(`Abriendo editor para: ${song.name}`)}
-                                        onDelete={() => handleDelete(song.id, song.name)}
+                                        status={song.status}
+                                        songKey={song.key}
+                                        onEdit={song.can_edit ? () => notify.success(`Abriendo editor para: ${song.name}`) : undefined}
+                                        onDelete={song.can_edit ? () => handleDelete(song.id, song.name) : undefined}
                                     />
                                 </motion.div>
                             ))}

@@ -11,7 +11,9 @@ interface EventCardProps {
     targetAudience: string;
     staffCount: number;
     inventoryCount: number;
-    onDelete: () => void;
+    canEdit?: boolean;
+    canDelete?: boolean;
+    onDelete?: () => void;
 }
 
 export default function EventCard({
@@ -22,6 +24,8 @@ export default function EventCard({
     targetAudience,
     staffCount,
     inventoryCount,
+    canEdit = false,
+    canDelete = false,
     onDelete
 }: EventCardProps) {
     const [mounted, setMounted] = useState(false);
@@ -84,22 +88,28 @@ export default function EventCard({
                 </div>
             </div>
 
-            {/* Caja de Acciones de Control Flotante/Alineada */}
-            <div className="flex items-center gap-2 self-end md:self-center shrink-0 w-full md:w-auto justify-end border-t border-slate-800/40 md:border-none pt-3 md:pt-0">
-                <Link href={`/events/${id}/edit`} className="shrink-0">
-                    <button className="px-3 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-slate-100 text-xs font-bold rounded-lg transition-all active:scale-95">
-                        Editar
-                    </button>
-                </Link>
-                <button
-                    onClick={onDelete}
-                    className="p-1.5 bg-red-600/10 hover:bg-red-600 border border-red-500/20 hover:border-red-500 text-red-400 hover:text-white rounded-lg transition-all active:scale-95 shrink-0"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-14v4M1 7h22" />
-                    </svg>
-                </button>
-            </div>
+            {/* Caja de Acciones: solo si el rol tiene algo que puede hacer acá */}
+            {(canEdit || canDelete) && (
+                <div className="flex items-center gap-2 self-end md:self-center shrink-0 w-full md:w-auto justify-end border-t border-slate-800/40 md:border-none pt-3 md:pt-0">
+                    {canEdit && (
+                        <Link href={`/events/${id}/edit`} className="shrink-0">
+                            <button className="px-3 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-slate-100 text-xs font-bold rounded-lg transition-all active:scale-95">
+                                Editar
+                            </button>
+                        </Link>
+                    )}
+                    {canDelete && (
+                        <button
+                            onClick={onDelete}
+                            className="p-1.5 bg-red-600/10 hover:bg-red-600 border border-red-500/20 hover:border-red-500 text-red-400 hover:text-white rounded-lg transition-all active:scale-95 shrink-0"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-14v4M1 7h22" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

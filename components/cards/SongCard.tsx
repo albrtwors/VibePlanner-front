@@ -1,17 +1,24 @@
 // components/cards/SongCard.tsx
 "use client";
 import Link from "next/link";
+import { songStatusMeta } from "@/utils/songStatus";
 
 interface SongCardProps {
     id: number;
     title: string;
     artist: string;
     genre?: string;
+    status?: string;
+    songKey?: string | null;
     onEdit?: () => void;
     onDelete?: () => void;
 }
 
-export default function SongCard({ id, title, artist, genre, onEdit, onDelete }: SongCardProps) {
+export default function SongCard({
+    id, title, artist, genre, status, songKey, onEdit, onDelete,
+}: SongCardProps) {
+    const statusMeta = status ? songStatusMeta(status) : null;
+
     return (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-900 border border-slate-800/80 rounded-xl hover:border-slate-700/60 transition-all shadow-sm group">
 
@@ -20,13 +27,32 @@ export default function SongCard({ id, title, artist, genre, onEdit, onDelete }:
                 <h3 className="font-semibold text-slate-100 group-hover:text-indigo-400 transition-colors">
                     {title}
                 </h3>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
+                <div className="flex items-center flex-wrap gap-2 text-xs text-slate-400">
                     <span className="font-medium text-slate-300">{artist}</span>
                     {genre && (
                         <>
                             <span className="text-slate-600">•</span>
                             <span className="px-2 py-0.5 bg-slate-800 border border-slate-700/50 rounded-full text-slate-400">
                                 {genre}
+                            </span>
+                        </>
+                    )}
+                    {songKey && (
+                        <>
+                            <span className="text-slate-600">•</span>
+                            <span
+                                className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full font-mono font-bold text-indigo-300"
+                                title="Tono"
+                            >
+                                {songKey}
+                            </span>
+                        </>
+                    )}
+                    {statusMeta && (
+                        <>
+                            <span className="text-slate-600">•</span>
+                            <span className={`px-2 py-0.5 border rounded-full font-bold uppercase tracking-wide text-[10px] ${statusMeta.className}`}>
+                                {statusMeta.label}
                             </span>
                         </>
                     )}

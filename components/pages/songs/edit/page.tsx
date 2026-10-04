@@ -9,6 +9,7 @@ import VibeHelperChat from "@/components/chatbot/SongHelperChat";
 import SongStructureInput from "@/components/forms/SongStructureInput";
 import SongStructureViewer from "@/components/songs/SongStructureViewer";
 import { parseRawTextToStructure } from "@/utils/songParser";
+import { SONG_KEYS } from "@/utils/chords";
 import { notify } from "@/utils/toast";
 import { apiUrl } from "@/consts/backEndpoint";
 
@@ -35,6 +36,7 @@ export default function EditSongPageClient({ params }: EditSongPageProps) {
     const [title, setTitle] = useState("");
     const [author, setAuthor] = useState("");
     const [genre, setGenre] = useState("");
+    const [songKey, setSongKey] = useState("");
     const [structureText, setStructureText] = useState("");
 
     const [loading, setLoading] = useState(true);
@@ -53,6 +55,7 @@ export default function EditSongPageClient({ params }: EditSongPageProps) {
                 // Si el backend devuelve campos null para autor o género, los pasamos a string vacío
                 setAuthor(data.author || "");
                 setGenre(data.genre || "");
+                setSongKey(data.key || "");
 
                 if (data.structure && data.structure.parts) {
                     const formattedText = data.structure.parts
@@ -104,6 +107,7 @@ export default function EditSongPageClient({ params }: EditSongPageProps) {
                     name: title,
                     author: author,
                     genre: genre,
+                    key: songKey || null,
                     structure: finalJsonStructure
                 })
             });
@@ -162,6 +166,16 @@ export default function EditSongPageClient({ params }: EditSongPageProps) {
                     <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Género <span className="text-slate-600 font-normal lowercase">(opcional)</span></label>
                         <input type="text" placeholder="..." value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 transition-all" />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Tono <span className="text-slate-600 font-normal lowercase">(opcional)</span></label>
+                        <select value={songKey} onChange={(e) => setSongKey(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 transition-all">
+                            <option value="">Sin definir</option>
+                            {SONG_KEYS.map((k) => (
+                                <option key={k} value={k}>{k}</option>
+                            ))}
+                        </select>
                     </div>
 
                     <SongStructureInput value={structureText} onChange={setStructureText} required />

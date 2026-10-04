@@ -10,6 +10,7 @@ import VibeHelperChat from "@/components/chatbot/SongHelperChat";
 import SongStructureInput from "@/components/forms/SongStructureInput";
 import SongStructureViewer from "@/components/songs/SongStructureViewer";
 import { parseRawTextToStructure } from "@/utils/songParser";
+import { SONG_KEYS } from "@/utils/chords";
 import { notify } from "@/utils/toast";
 import { apiUrl } from "@/consts/backEndpoint";
 
@@ -37,6 +38,8 @@ export default function CreateSongPage() {
     const [title, setTitle] = useState("");
     const [author, setAuthor] = useState("");
     const [genre, setGenre] = useState("");
+    const [songKey, setSongKey] = useState("");
+    const [submitForReview, setSubmitForReview] = useState(true);
     const [structureText, setStructureText] = useState("");
     const [errors, setErrors] = useState<FormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,13 +113,19 @@ export default function CreateSongPage() {
                     name: title,
                     author: author,
                     genre: genre,
+                    key: songKey || null,
+                    submit: submitForReview,
                     structure: finalJsonStructure
                 })
             });
 
             if (response.ok) {
-                notify.success(`¡Canción "${title}" registrada correctamente!`);
-                setTitle(""); setAuthor(""); setGenre(""); setStructureText("");
+                notify.success(
+                    submitForReview
+                        ? `¡Canción "${title}" enviada a revisión!`
+                        : `¡Canción "${title}" guardada como borrador!`
+                );
+                setTitle(""); setAuthor(""); setGenre(""); setSongKey(""); setStructureText("");
                 setErrors({});
             } else {
                 const errData = await response.json().catch(() => ({}));
@@ -230,6 +239,21 @@ export default function CreateSongPage() {
                         </AnimatePresence>
                     </div>
 
+                    {/* Tono */}
+                    <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Tono <span className="text-slate-600 font-normal lowercase">(opcional)</span></label>
+                        <select
+                            value={songKey}
+                            onChange={(e) => setSongKey(e.target.value)}
+                            className="w-full px-4 py-3 bg-slate-950/60 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-300"
+                        >
+                            <option value="">Sin definir</option>
+                            {SONG_KEYS.map((k) => (
+                                <option key={k} value={k}>{k}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Contenedor de Estructura */}
                     <div className="flex flex-col gap-2 md:col-span-2">
                         <SongStructureInput value={structureText} onChange={setStructureText} />
@@ -243,7 +267,17 @@ export default function CreateSongPage() {
                     </div>
 
                     {/* Botón de Envío Animado */}
-                    <div className="flex items-center justify-end gap-4 md:col-span-2 mt-4 border-t border-slate-800/60 pt-6">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 md:col-span-2 mt-4 border-t border-slate-800/60 pt-6">
+                        <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={submitForReview}
+                                onChange={(e) => setSubmitForReview(e.target.checked)}
+                                className="h-4 w-4 rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500/30"
+                            />
+                            Enviar a revisión al guardar
+                            <span className="text-xs text-slate-500">(si no, queda como borrador privado)</span>
+                        </label>
                         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                             <GenericButton color="primary">
                                 {isSubmitting ? (
@@ -252,7 +286,7 @@ export default function CreateSongPage() {
                                     </span>
                                 ) : (
                                     <span className="flex items-center gap-1.5">
-                                        <Music2 className="w-4 h-4" /> Guardar Canción
+                                        <Music2 className="w-4 h-4" /> {submitForReview ? "Guardar y enviar" : "Guardar Canción"}
                                     </span>
                                 )}
                             </GenericButton>
