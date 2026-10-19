@@ -23,6 +23,9 @@ interface CollabItem {
 interface GroupMember {
     name: string;
     email: string;
+    contactType?: "email" | "phone" | "none";
+    contactValue?: string;
+    contactPhone?: string;
     monetaryContribution: number;
     logisticsToBring: CollabItem[];
 }
@@ -31,6 +34,9 @@ interface ParticipantBlock {
     type: "individual" | "group";
     displayName: string;
     contactEmail: string;
+    contactType?: "email" | "phone" | "none";
+    contactValue?: string;
+    contactPhone?: string;
     monetaryContribution: number;
     logisticsToBring: CollabItem[];
     members: GroupMember[];
@@ -41,32 +47,38 @@ interface ParticipantBlock {
 function normalizeBlocks(rawBlocks: any[]): ParticipantBlock[] {
     if (!Array.isArray(rawBlocks)) return [];
 
-    const normalizeCollab = (list: any[]): CollabItem[] => {
-        const cleaned = (Array.isArray(list) ? list : [])
-            .filter((it) => it && typeof it.item === "string")
-            .map((it) => ({ item: it.item, quantity: Number(it.quantity) || 1 }));
-        return cleaned.length > 0 ? cleaned : [{ item: "", quantity: 1 }];
-    };
+        const normalizeCollab = (list: any[]): CollabItem[] => {
+            const cleaned = (Array.isArray(list) ? list : [])
+                .filter((it) => it && typeof it.item === "string")
+                .map((it) => ({ item: it.item, quantity: Number(it.quantity) || 1 }));
+            return cleaned.length > 0 ? cleaned : [{ item: "", quantity: 1 }];
+        };
 
-    return rawBlocks
-        .filter((b) => b && typeof b.displayName === "string")
-        .map((b) => ({
-            type: b.type === "group" ? "group" : "individual",
-            displayName: b.displayName || "",
-            contactEmail: b.contactEmail || "",
-            monetaryContribution: Number(b.monetaryContribution) || 0,
-            logisticsToBring: normalizeCollab(b.logisticsToBring),
-            members: b.type === "group"
-                ? (Array.isArray(b.members) ? b.members : [])
-                    .filter((m: any) => m && typeof m.name === "string")
-                    .map((m: any) => ({
-                        name: m.name,
-                        email: m.email || "",
-                        monetaryContribution: Number(m.monetaryContribution) || 0,
-                        logisticsToBring: normalizeCollab(m.logisticsToBring),
-                    }))
-                : [],
-        }));
+        return rawBlocks
+            .filter((b) => b && typeof b.displayName === "string")
+            .map((b) => ({
+                type: b.type === "group" ? "group" : "individual",
+                displayName: b.displayName || "",
+                contactEmail: b.contactEmail || b.contactValue || "",
+                contactType: b.contactType || (b.contactEmail || b.contactValue ? "email" : "none"),
+                contactValue: b.contactValue || b.contactEmail || b.contactPhone || "",
+                contactPhone: b.contactPhone || "",
+                monetaryContribution: Number(b.monetaryContribution) || 0,
+                logisticsToBring: normalizeCollab(b.logisticsToBring),
+                members: b.type === "group"
+                    ? (Array.isArray(b.members) ? b.members : [])
+                        .filter((m: any) => m && typeof m.name === "string")
+                        .map((m: any) => ({
+                            name: m.name,
+                            email: m.email || m.contactValue || "",
+                            contactType: m.contactType || (m.email || m.contactValue ? "email" : "none"),
+                            contactValue: m.contactValue || m.email || m.contactPhone || "",
+                            contactPhone: m.contactPhone || "",
+                            monetaryContribution: Number(m.monetaryContribution) || 0,
+                            logisticsToBring: normalizeCollab(m.logisticsToBring),
+                        }))
+                    : [],
+            }));
 }
 
 export default function AddParticipantsPage() {
@@ -88,7 +100,7 @@ export default function AddParticipantsPage() {
     const [csvPendingAi, setCsvPendingAi] = useState<{ rows: Record<string, string>[]; headers: string[] } | null>(null);
 
     const [blocks, setBlocks] = useState<ParticipantBlock[]>([
-        { type: "individual", displayName: "", contactEmail: "", monetaryContribution: 0, logisticsToBring: [{ item: "", quantity: 1 }], members: [] }
+        { type: "individual", displayName: "", contactEmail: "", contactType: "email", contactValue: "", contactPhone: "", monetaryContribution: 0, logisticsToBring: [{ item: "", quantity: 1 }], members: [] }
     ]);
 
     useEffect(() => {
@@ -104,38 +116,49 @@ export default function AddParticipantsPage() {
                 const fetchedBlocks: ParticipantBlock[] = [];
 
                 if (data.groups && data.groups.length > 0) {
-                    data.groups.forEach((g: any) => {
-                        const groupMembers = (data.participants || [])
-                            .filter((p: any) => p.group_id === g.id)
-                            .map((p: any) => ({
-                                name: p.name,
-                                email: p.email || "",
-                                monetaryContribution: p.monetary_contribution || 0,
-                                logisticsToBring: p.logistics_to_bring && p.logistics_to_bring.length > 0
-                                    ? p.logistics_to_bring.map((l: any) => ({ item: l.item, quantity: l.quantity }))
-                                    : [{ item: "", quantity: 1 }]
-                            }));
+                data.groups.forEach((g: any) => {
+                    const groupMembers = (data.participants || [])
+                        .filter((p: any) => p.group_id === g.id)
+                        .map((p: any) => ({
+                            name: p.name,
+                            email: p.email || p.contact_value || "",
+                            contactType: p.contact_type || (p.email ? "email" : p.contact_phone ? "phone" : "none"),
+                            contactValue: p.contact_value || p.email || p.contact_phone || "",
+                            contactPhone: p.contact_phone || "",
+                            monetaryContribution: p.monetary_contribution || 0,
+                            logisticsToBring: p.logistics_to_bring && p.logistics_to_bring.length > 0
+                                ? p.logistics_to_bring.map((l: any) => ({ item: l.item, quantity: l.quantity }))
+                                : [{ item: "", quantity: 1 }]
+                        }));
 
-                        fetchedBlocks.push({
-                            type: "group",
-                            displayName: g.name,
-                            contactEmail: "",
-                            monetaryContribution: g.monetary_contribution || 0,
-                            logisticsToBring: g.logistics_to_bring && g.logistics_to_bring.length > 0
-                                ? g.logistics_to_bring.map((l: any) => ({ item: l.item, quantity: l.quantity }))
-                                : [{ item: "", quantity: 1 }],
-                            members: groupMembers
-                        });
+                    fetchedBlocks.push({
+                        type: "group",
+                        displayName: g.name,
+                        contactEmail: "",
+                        contactType: "none",
+                        contactValue: "",
+                        contactPhone: "",
+                        monetaryContribution: g.monetary_contribution || 0,
+                        logisticsToBring: g.logistics_to_bring && g.logistics_to_bring.length > 0
+                            ? g.logistics_to_bring.map((l: any) => ({ item: l.item, quantity: l.quantity }))
+                            : [{ item: "", quantity: 1 }],
+                        members: groupMembers
                     });
+                });
                 }
 
                 const individuals = (data.participants || []).filter((p: any) => p.group_id === null);
                 if (individuals.length > 0) {
                     individuals.forEach((p: any) => {
+                        const cType = p.contact_type || (p.email ? "email" : p.contact_phone ? "phone" : "none");
+                        const cVal = p.contact_value || p.email || p.contact_phone || "";
                         fetchedBlocks.push({
                             type: "individual",
                             displayName: p.name,
-                            contactEmail: p.email || "",
+                            contactEmail: p.email || cVal,
+                            contactType: cType,
+                            contactValue: cVal,
+                            contactPhone: p.contact_phone || (cType === "phone" ? cVal : ""),
                             monetaryContribution: p.monetary_contribution || 0,
                             logisticsToBring: p.logistics_to_bring && p.logistics_to_bring.length > 0
                                 ? p.logistics_to_bring.map((l: any) => ({ item: l.item, quantity: l.quantity }))
@@ -313,7 +336,33 @@ export default function AddParticipantsPage() {
         setLoading(true);
         setMessage({ text: "", type: "" });
 
-        const cleanPayload = blocks.filter(b => b.displayName.trim() !== "");
+        const cleanPayload = blocks
+            .filter(b => b.displayName.trim() !== "")
+            .map((b) => {
+                const base: any = {
+                    type: b.type,
+                    displayName: b.displayName,
+                    contactEmail: b.contactValue || b.contactEmail || "",
+                    contactType: b.contactType || (b.contactValue || b.contactEmail ? "email" : "none"),
+                    contactValue: b.contactValue || b.contactEmail || b.contactPhone || "",
+                    contactPhone: b.contactPhone || "",
+                    monetaryContribution: b.monetaryContribution,
+                    logisticsToBring: b.logisticsToBring,
+                    members: [],
+                };
+                if (b.type === "group") {
+                    base.members = b.members.map((m) => ({
+                        name: m.name,
+                        email: m.contactValue || m.email || "",
+                        contactType: m.contactType || ((m.contactValue || m.email) ? "email" : m.contactPhone ? "phone" : "none"),
+                        contactValue: m.contactValue || m.email || m.contactPhone || "",
+                        contactPhone: m.contactPhone || "",
+                        monetaryContribution: m.monetaryContribution,
+                        logisticsToBring: m.logisticsToBring,
+                    }));
+                }
+                return base;
+            });
 
         try {
             const res = await fetch(apiUrl(`/api/events/${eventId}/participants/json-sync`), {
@@ -472,9 +521,28 @@ export default function AddParticipantsPage() {
                                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">{block.type === "group" ? "Nombre de la Mesa / Colectivo *" : "Nombre Completo *"}</label>
                                     <input type="text" required value={block.displayName} onChange={(e) => handleBlockChange(bIndex, "displayName", e.target.value)} placeholder={block.type === "group" ? "Ej: Protocolo, Familia Pérez" : "Ej: Juan Soto"} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white" />
                                 </div>
-                                <div>
-                                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Correo de Contacto</label>
-                                    <input type="email" value={block.contactEmail} onChange={(e) => handleBlockChange(bIndex, "contactEmail", e.target.value)} placeholder="correo@ejemplo.com" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white" />
+                                <div className="col-span-1 md:col-span-2">
+                                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Contacto</label>
+                                    <select
+                                        value={block.contactType || "email"}
+                                        onChange={(e) => {
+                                            const t = e.target.value as any;
+                                            handleBlockChange(bIndex, "contactType", t);
+                                            if (t === "email") handleBlockChange(bIndex, "contactPhone", "");
+                                            if (t === "phone") handleBlockChange(bIndex, "contactEmail", "");
+                                        }}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white"
+                                    >
+                                        <option value="email">Correo</option>
+                                        <option value="phone">Teléfono</option>
+                                        <option value="none">No aplica</option>
+                                    </select>
+                                    {block.contactType === "email" && (
+                                        <input type="email" value={block.contactValue || block.contactEmail || ""} onChange={(e) => { handleBlockChange(bIndex, "contactValue", e.target.value); handleBlockChange(bIndex, "contactEmail", e.target.value); }} placeholder="correo@ejemplo.com" className="mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white" />
+                                    )}
+                                    {block.contactType === "phone" && (
+                                        <input type="tel" value={block.contactValue || block.contactPhone || ""} onChange={(e) => { handleBlockChange(bIndex, "contactValue", e.target.value); handleBlockChange(bIndex, "contactPhone", e.target.value); }} placeholder="+56 9 1234 5678" className="mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white" />
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-[11px] font-bold uppercase tracking-wider text-indigo-400 mb-1.5">{block.type === "group" ? "Fondo Financiero Grupal ($)" : "Aporte Monetario Individual ($)"}</label>
@@ -520,8 +588,26 @@ export default function AddParticipantsPage() {
                                                         <input type="text" required value={member.name} onChange={(e) => handleMemberChange(bIndex, mIndex, "name", e.target.value)} placeholder="Nombre del miembro" className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white" />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Correo Opcional</label>
-                                                        <input type="email" value={member.email} onChange={(e) => handleMemberChange(bIndex, mIndex, "email", e.target.value)} placeholder="miembro@correo.com" className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+                                                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Contacto</label>
+                                                        <select
+                                                            value={member.contactType || (member.email ? "email" : "none")}
+                                                            onChange={(e) => {
+                                                                const t = e.target.value as any;
+                                                                handleMemberChange(bIndex, mIndex, "contactType", t);
+                                                                if (t === "phone") handleMemberChange(bIndex, mIndex, "email", "");
+                                                            }}
+                                                            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                                                        >
+                                                            <option value="email">Correo</option>
+                                                            <option value="phone">Teléfono</option>
+                                                            <option value="none">No aplica</option>
+                                                        </select>
+                                                        {member.contactType === "email" && (
+                                                            <input type="email" value={member.contactValue || member.email || ""} onChange={(e) => { handleMemberChange(bIndex, mIndex, "contactValue", e.target.value); handleMemberChange(bIndex, mIndex, "email", e.target.value); }} placeholder="miembro@correo.com" className="mt-1.5 w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+                                                        )}
+                                                        {member.contactType === "phone" && (
+                                                            <input type="tel" value={member.contactValue || member.contactPhone || ""} onChange={(e) => { handleMemberChange(bIndex, mIndex, "contactValue", e.target.value); handleMemberChange(bIndex, mIndex, "contactPhone", e.target.value); }} placeholder="+56..." className="mt-1.5 w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <label className="block text-[10px] uppercase font-bold text-indigo-400 mb-1">Aporte Propio ($)</label>

@@ -23,6 +23,7 @@
     "react-markdown": "^10.1.0",
     "react-sortablejs": "^6.1.4",
     "react-toastify": "^11.1.0",
+    "recharts": "^3.10.1",
     "sortablejs": "^1.15.7"
   },
   "devDependencies": {

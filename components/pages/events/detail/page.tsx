@@ -56,6 +56,7 @@ export default function EventDetailPagePage({ params }: PageProps) {
     // Cargar asistencia y editar el plan son cosas de organización (events.edit).
     const { can } = useClientPermissions();
     const canManageEvent = can("events.edit");
+    const canExportEvent = can("events.export") || can("events.edit");
 
     useEffect(() => {
         setMounted(true);
@@ -108,19 +109,35 @@ export default function EventDetailPagePage({ params }: PageProps) {
                 </div>
 
                 {/* Acciones de organización: si el rol no puede, no se renderiza nada */}
-                {canManageEvent && (
-                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                        {/* ENLACE DIRECTO AL LOTE DINÁMICO DE PARTICIPANTES */}
-                        <Link href={`/events/${id}/participants`}>
-                            <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-950/20 active:scale-95">
-                                👥 Gestionar Asistencia
+                {(canManageEvent || canExportEvent) && (
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
+                        {canExportEvent && (
+                            <button
+                                onClick={() => {
+                                    import("@/utils/eventoPdf").then(({ downloadEventoPdf }) => {
+                                        downloadEventoPdf(event);
+                                    });
+                                }}
+                                className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-indigo-500/60 text-slate-300 text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95"
+                            >
+                                Exportar PDF
                             </button>
-                        </Link>
-                        <Link href={`/events/${id}/edit`}>
-                            <button className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95">
-                                Editar Plan
-                            </button>
-                        </Link>
+                        )}
+                        {canManageEvent && (
+                            <>
+                                {/* ENLACE DIRECTO AL LOTE DINÁMICO DE PARTICIPANTES */}
+                                <Link href={`/events/${id}/participants`}>
+                                    <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-950/20 active:scale-95">
+                                        👥 Gestionar Asistencia
+                                    </button>
+                                </Link>
+                                <Link href={`/events/${id}/edit`}>
+                                    <button className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95">
+                                        Editar Plan
+                                    </button>
+                                </Link>
+                            </>
+                        )}
                     </div>
                 )}
             </div>

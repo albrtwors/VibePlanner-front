@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, LogOut, LifeBuoy, PlusCircle } from "lucide-react";
+import { Menu, X, LogOut, LifeBuoy, PlusCircle, Sun, Moon } from "lucide-react";
 import { getClientProfile } from "@/utils/proxy";
 import { hasPermission, roleLabel, ClientProfile } from "@/utils/permissions";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password"];
 
@@ -42,6 +43,7 @@ export default function Navbar() {
 
     const pathname = usePathname();
     const router = useRouter();
+    const { theme, toggleTheme } = useTheme();
     const isActive = (path: string) => pathname === path;
 
     useEffect(() => {
@@ -112,13 +114,13 @@ export default function Navbar() {
                     <div className="flex h-16 items-center justify-between">
                         <Link href="/login" className="flex items-center gap-2 group">
                             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white font-bold text-lg shadow-lg shadow-indigo-500/20 transition-transform duration-300 group-hover:rotate-12">V</div>
-                            <span className="text-xl font-extrabold text-white">Vibe<span className="text-indigo-400">Planner</span></span>
+                            <span className="text-xl font-extrabold text-slate-900 dark:text-white">Vibe<span className="text-indigo-500 dark:text-indigo-400">Planner</span></span>
                         </Link>
 
                         <div className="flex items-center gap-3">
                             <Link
                                 href="/login"
-                                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/login") ? "text-indigo-400" : "text-slate-400 hover:text-white"}`}
+                                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive("/login") ? "text-indigo-500 dark:text-indigo-400" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"}`}
                             >
                                 Iniciar sesión
                             </Link>
@@ -146,7 +148,7 @@ export default function Navbar() {
                     {/* Brand Logotipo */}
                     <div className="flex items-center gap-2 cursor-pointer">
                         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white font-bold text-lg shadow-lg shadow-indigo-500/20">V</div>
-                        <span className="text-xl font-extrabold text-white">Vibe<span className="text-indigo-400">Planner</span></span>
+                        <span className="text-xl font-extrabold text-slate-900 dark:text-white">Vibe<span className="text-indigo-400">Planner</span></span>
                     </div>
 
                     {/* Navegación Desktop con Animación Secuencial de Izquierda a Derecha */}
@@ -167,7 +169,7 @@ export default function Navbar() {
                                 >
                                     <Link
                                         href={link.href}
-                                        className={`relative block rounded-lg px-3 py-2 transition-colors duration-300 ${active ? "text-indigo-400 font-semibold" : "text-slate-400 hover:text-white"}`}
+                                        className={`relative block rounded-lg px-3 py-2 transition-colors duration-300 ${active ? "text-indigo-400 font-semibold" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"}`}
                                     >
                                         {active && (
                                             <motion.span
@@ -195,7 +197,7 @@ export default function Navbar() {
                                         >
                                             <Link
                                                 href={link.href}
-                                                className={`relative block rounded-lg px-3 py-2 transition-colors duration-300 ${active ? "text-amber-400 font-semibold" : "text-slate-400 hover:text-white"}`}
+                                                className={`relative block rounded-lg px-3 py-2 transition-colors duration-300 ${active ? "text-amber-400 font-semibold" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"}`}
                                             >
                                                 {active && (
                                                     <motion.span
@@ -220,7 +222,17 @@ export default function Navbar() {
                         transition={{ delay: 0.3, duration: 0.4 }}
                         className="hidden md:flex items-center gap-3"
                     >
-                        <button className="flex items-center gap-1 text-slate-400 hover:text-white text-sm transition-colors px-2 py-1">
+                        <button
+                            onClick={toggleTheme}
+                            className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm transition-colors px-2 py-1 rounded-lg border border-transparent hover:border-slate-800/60"
+                            title={`Cambiar a ${theme === "dark" ? "modo claro" : "modo oscuro"}`}
+                            aria-label="Toggle theme"
+                        >
+                            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                            <span className="hidden lg:inline">{theme === "dark" ? "Claro" : "Oscuro"}</span>
+                        </button>
+
+                        <button className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm transition-colors px-2 py-1">
                             <LifeBuoy className="w-4 h-4" /> Soporte
                         </button>
 
@@ -250,7 +262,7 @@ export default function Navbar() {
 
                     {/* Botón de Menú Móvil */}
                     <button
-                        className="md:hidden text-slate-400 hover:text-white focus:outline-none"
+                        className="md:hidden text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white focus:outline-none"
                         onClick={() => setIsOpen(!isOpen)}
                     >
                         <motion.div animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.2 }}>
@@ -283,7 +295,7 @@ export default function Navbar() {
                                         onClick={() => setIsOpen(false)}
                                         className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive(link.href)
                                             ? "bg-slate-900 text-indigo-400 border-l-2 border-indigo-500 pl-3"
-                                            : "text-slate-400 hover:bg-slate-900/50 hover:text-white"
+                                            : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900/50 dark:hover:text-white"
                                             }`}
                                     >
                                         {link.name}
@@ -303,7 +315,7 @@ export default function Navbar() {
                                                 onClick={() => setIsOpen(false)}
                                                 className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive(link.href)
                                                     ? "bg-slate-900 text-amber-400 border-l-2 border-amber-500 pl-3"
-                                                    : "text-slate-400 hover:bg-slate-900/50 hover:text-white"
+                                                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900/50 dark:hover:text-white"
                                                     }`}
                                             >
                                                 {link.name}
@@ -317,6 +329,13 @@ export default function Navbar() {
                             <p className="px-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-600">
                                 {roleLabel(role || "")}
                             </p>
+                            <button
+                                onClick={() => { setIsOpen(false); toggleTheme(); }}
+                                className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white rounded-xl text-sm font-medium transition-all"
+                            >
+                                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                                Cambiar a {theme === "dark" ? "modo claro" : "modo oscuro"}
+                            </button>
                             <button
                                 onClick={() => { setIsOpen(false); handleLogout(); }}
                                 className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-rose-400 hover:bg-rose-500/10 rounded-xl text-sm font-medium transition-all"

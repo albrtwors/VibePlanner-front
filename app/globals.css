@@ -1,1 +1,123 @@
 @import "tailwindcss";
+
+/* Tema oscuro controlado por clase en <html> (se alterna desde el Navbar). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: dark;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+html:not(.dark) {
+  color-scheme: light;
+}
+
+/* ============================================================
+   MODO CLARO
+   La app se construyó con utilidades slate-* de estética oscura.
+   En vez de reescribir cada página, aquí remapeamos las
+   superficies oscuras a equivalentes claros cuando <html> NO
+   tiene la clase `dark`. Los colores de acento (indigo, emerald,
+   rose, violet, etc.) se conservan intactos.
+   ============================================================ */
+
+/* Superficies */
+html:not(.dark) [class*="bg-slate-950"] {
+  background-color: #f8fafc;
+}
+html:not(.dark) [class*="bg-slate-900"] {
+  background-color: #f1f5f9;
+}
+html:not(.dark) [class*="bg-slate-800"] {
+  background-color: #e2e8f0;
+}
+html:not(.dark) [class*="bg-slate-700"] {
+  background-color: #cbd5e1;
+}
+html:not(.dark) [class*="bg-slate-600"] {
+  background-color: #cbd5e1;
+}
+
+/* Texto oscuro -> texto legible sobre fondo claro */
+html:not(.dark) [class*="text-slate-50"] {
+  color: #0f172a;
+}
+html:not(.dark) [class*="text-slate-100"] {
+  color: #0f172a;
+}
+html:not(.dark) [class*="text-slate-200"] {
+  color: #1e293b;
+}
+html:not(.dark) [class*="text-slate-300"] {
+  color: #334155;
+}
+html:not(.dark) [class*="text-slate-400"] {
+  color: #475569;
+}
+html:not(.dark) [class*="text-slate-500"] {
+  color: #64748b;
+}
+html:not(.dark) [class*="text-slate-600"] {
+  color: #64748b;
+}
+
+/* Texto blanco -> oscuro en claro, salvo cuando está sobre un
+   fondo de acento (botones/logo con degradado o color sólido). */
+html:not(.dark) [class*="text-white"] {
+  color: #0f172a;
+}
+html:not(.dark) [class*="bg-indigo-"][class*="text-white"],
+html:not(.dark) [class*="bg-purple-"][class*="text-white"],
+html:not(.dark) [class*="bg-violet-"][class*="text-white"],
+html:not(.dark) [class*="bg-fuchsia-"][class*="text-white"],
+html:not(.dark) [class*="bg-pink-"][class*="text-white"],
+html:not(.dark) [class*="bg-rose-"][class*="text-white"],
+html:not(.dark) [class*="bg-red-"][class*="text-white"],
+html:not(.dark) [class*="bg-emerald-"][class*="text-white"],
+html:not(.dark) [class*="bg-teal-"][class*="text-white"],
+html:not(.dark) [class*="bg-green-"][class*="text-white"],
+html:not(.dark) [class*="bg-amber-"][class*="text-white"],
+html:not(.dark) [class*="bg-yellow-"][class*="text-white"],
+html:not(.dark) [class*="bg-sky-"][class*="text-white"],
+html:not(.dark) [class*="bg-blue-"][class*="text-white"],
+html:not(.dark) [class*="bg-cyan-"][class*="text-white"],
+html:not(.dark) [class*="bg-orange-"][class*="text-white"],
+html:not(.dark) [class*="bg-gradient-"][class*="text-white"] {
+  color: #ffffff;
+}
+
+/* Bordes */
+html:not(.dark) [class*="border-slate-900"] {
+  border-color: #e2e8f0;
+}
+html:not(.dark) [class*="border-slate-800"] {
+  border-color: #e2e8f0;
+}
+html:not(.dark) [class*="border-slate-700"] {
+  border-color: #cbd5e1;
+}
+html:not(.dark) [class*="border-slate-600"] {
+  border-color: #cbd5e1;
+}
+
+/* Degradados de texto del encabezado (from-slate-100 to-slate-400) */
+html:not(.dark) [class*="from-slate-100"] {
+  --tw-gradient-from: #0f172a;
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+html:not(.dark) [class*="to-slate-400"] {
+  --tw-gradient-to: #475569;
+}
+html:not(.dark) [class*="via-slate-200"] {
+  --tw-gradient-via: #334155;
+}
+
+/* Inputs nativos en claro */
+html:not(.dark) input,
+html:not(.dark) select,
+html:not(.dark) textarea {
+  color-scheme: light;
+}

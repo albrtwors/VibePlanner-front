@@ -118,8 +118,8 @@ export default function EventsIndex() {
             <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="flex flex-col gap-2 border-b border-slate-800/60 pb-6"
+                transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
+                className="flex flex-col gap-3 sm:gap-4 border-b border-slate-300/80 dark:border-slate-800 pb-5"
             >
                 <h1 className="text-3xl font-black text-slate-100 tracking-tight sm:text-4xl bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-slate-400 flex items-center gap-3">
                     <Calendar className="w-8 h-8 text-indigo-400 shrink-0" /> Control de Eventos
