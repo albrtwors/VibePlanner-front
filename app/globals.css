@@ -121,3 +121,26 @@ html:not(.dark) select,
 html:not(.dark) textarea {
   color-scheme: light;
 }
+
+/* Labels más legibles en todos los formularios */
+form label,
+.form-label,
+label[for] {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  line-height: 1.4 !important;
+  text-transform: none;
+}
+
+html:not(.dark) form label,
+html:not(.dark) .form-label,
+html:not(.dark) label[for] {
+  color: #1e293b !important;
+}
+
+html.dark form label,
+html.dark .form-label,
+html.dark label[for] {
+  color: #e2e8f0 !important;
+}

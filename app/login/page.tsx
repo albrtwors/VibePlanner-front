@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Mail, Lock, LogIn, Loader2, ShieldAlert, KeyRound } from "lucide-react";
+import SimpleCaptcha from "@/components/captcha/SimpleCaptcha";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -12,12 +13,20 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [pendingVerification, setPendingVerification] = useState<string | null>(null);
+    const [captchaOk, setCaptchaOk] = useState(false);
+    const [captchaKey, setCaptchaKey] = useState(0);
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
         setPendingVerification(null);
+        if (!captchaOk) {
+            setError("Completá la verificación humana.");
+            setCaptchaKey((k) => k + 1);
+            setCaptchaOk(false);
+            return;
+        }
         setLoading(true);
 
         let data: any = null;
@@ -32,13 +41,18 @@ export default function LoginPage() {
 
             data = await res.json();
 
-            if (!res.ok) {
-                // El backend marca las cuentas que todavía no confirmaron su correo
-                if (data?.requires_verification) {
-                    setPendingVerification(data.email || email);
+                if (!res.ok) {
+                    setCaptchaKey((k) => k + 1);
+                    setCaptchaOk(false);
                 }
-                throw new Error(data.error || "Credenciales inválidas, mano.");
-            }
+
+                if (!res.ok) {
+                    // El backend marca las cuentas que todavía no confirmaron su correo
+                    if (data?.requires_verification) {
+                        setPendingVerification(data.email || email);
+                    }
+                    throw new Error(data.error || "Credenciales inválidas, mano.");
+                }
 
             router.push("/dashboard");
             router.refresh();
@@ -132,6 +146,8 @@ export default function LoginPage() {
                             placeholder="••••••••"
                         />
                     </div>
+
+                    <SimpleCaptcha onValidChange={setCaptchaOk} resetKey={captchaKey} />
 
                     {/* Botón de Envío */}
                     <motion.button

@@ -17,6 +17,7 @@ import {
     RotateCw,
     CheckCircle2,
 } from "lucide-react";
+import SimpleCaptcha from "@/components/captcha/SimpleCaptcha";
 
 interface FormErrors {
     username?: string;
@@ -39,6 +40,8 @@ export default function RegisterPage() {
     const [errors, setErrors] = useState<FormErrors>({});
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState<Step>("form");
+    const [captchaOk, setCaptchaOk] = useState(false);
+    const [captchaKey, setCaptchaKey] = useState(0);
 
     // Datos del paso de verificación
     const [code, setCode] = useState("");
@@ -103,6 +106,13 @@ export default function RegisterPage() {
 
         if (!validateForm()) return;
 
+        if (!captchaOk) {
+            setErrors({ global: "Completá la verificación humana." });
+            setCaptchaKey((k) => k + 1);
+            setCaptchaOk(false);
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -116,6 +126,8 @@ export default function RegisterPage() {
             const data = await res.json();
 
             if (!res.ok) {
+                setCaptchaKey((k) => k + 1);
+                setCaptchaOk(false);
                 throw new Error(data.error || "No se pudo crear la cuenta, mano.");
             }
 
@@ -340,6 +352,8 @@ export default function RegisterPage() {
                                 )}
                             </AnimatePresence>
                         </div>
+
+                        <SimpleCaptcha onValidChange={setCaptchaOk} resetKey={captchaKey} />
 
                         {/* Botón de Envío */}
                         <motion.button

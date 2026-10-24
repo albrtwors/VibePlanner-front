@@ -274,61 +274,92 @@ export default function AddParticipantsPage() {
     };
 
     const handleBlockChange = (index: number, field: keyof Omit<ParticipantBlock, "logisticsToBring" | "members">, value: any) => {
-        const updated = [...blocks];
-        updated[index] = { ...updated[index], [field]: value };
-        setBlocks(updated);
+        setBlocks((prev) => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], [field]: value };
+            return updated;
+        });
     };
 
     const handleAddCollabRow = (bIndex: number) => {
-        const updated = [...blocks];
-        updated[bIndex].logisticsToBring.push({ item: "", quantity: 1 });
-        setBlocks(updated);
+        setBlocks((prev) => {
+            const updated = [...prev];
+            updated[bIndex] = { ...updated[bIndex], logisticsToBring: [...updated[bIndex].logisticsToBring, { item: "", quantity: 1 }] };
+            return updated;
+        });
     };
 
     const handleRemoveCollabRow = (bIndex: number, cIndex: number) => {
-        const updated = [...blocks];
-        if (updated[bIndex].logisticsToBring.length === 1) return;
-        updated[bIndex].logisticsToBring = updated[bIndex].logisticsToBring.filter((_, i) => i !== cIndex);
-        setBlocks(updated);
+        setBlocks((prev) => {
+            const updated = [...prev];
+            if (updated[bIndex].logisticsToBring.length === 1) return prev;
+            updated[bIndex] = { ...updated[bIndex], logisticsToBring: updated[bIndex].logisticsToBring.filter((_, i) => i !== cIndex) };
+            return updated;
+        });
     };
 
     const handleCollabChange = (bIndex: number, cIndex: number, field: keyof CollabItem, value: any) => {
-        const updated = [...blocks];
-        updated[bIndex].logisticsToBring[cIndex] = { ...updated[bIndex].logisticsToBring[cIndex], [field]: value };
-        setBlocks(updated);
+        setBlocks((prev) => {
+            const updated = [...prev];
+            const list = [...updated[bIndex].logisticsToBring];
+            list[cIndex] = { ...list[cIndex], [field]: value };
+            updated[bIndex] = { ...updated[bIndex], logisticsToBring: list };
+            return updated;
+        });
     };
 
     const handleAddMember = (bIndex: number) => {
-        const updated = [...blocks];
-        updated[bIndex].members.push({ name: "", email: "", monetaryContribution: 0, logisticsToBring: [{ item: "", quantity: 1 }] });
-        setBlocks(updated);
+        setBlocks((prev) => {
+            const updated = [...prev];
+            updated[bIndex] = {
+                ...updated[bIndex],
+                members: [
+                    ...(updated[bIndex].members || []),
+                    { name: "", email: "", contactType: "email", contactValue: "", contactPhone: "", monetaryContribution: 0, logisticsToBring: [{ item: "", quantity: 1 }] }
+                ]
+            };
+            return updated;
+        });
     };
 
     const handleRemoveMember = (bIndex: number, mIndex: number) => {
-        const updated = [...blocks];
-        updated[bIndex].members = updated[bIndex].members.filter((_, i) => i !== mIndex);
-        setBlocks(updated);
+        setBlocks((prev) => {
+            const updated = [...prev];
+            updated[bIndex] = { ...updated[bIndex], members: (updated[bIndex].members || []).filter((_, i) => i !== mIndex) };
+            return updated;
+        });
     };
 
     const handleMemberChange = (bIndex: number, mIndex: number, field: keyof Omit<GroupMember, "logisticsToBring">, value: any) => {
-        const updated = [...blocks];
-        updated[bIndex].members[mIndex] = { ...updated[bIndex].members[mIndex], [field]: value };
-        setBlocks(updated);
+        setBlocks((prev) => {
+            const updated = [...prev];
+            const members = [...(updated[bIndex].members || [])];
+            members[mIndex] = { ...members[mIndex], [field]: value };
+            updated[bIndex] = { ...updated[bIndex], members };
+            return updated;
+        });
     };
 
     const handleAddMemberCollab = (bIndex: number, mIndex: number) => {
-        const updated = [...blocks];
-        updated[bIndex].members[mIndex].logisticsToBring.push({ item: "", quantity: 1 });
-        setBlocks(updated);
+        setBlocks((prev) => {
+            const updated = [...prev];
+            const members = [...(updated[bIndex].members || [])];
+            members[mIndex] = { ...members[mIndex], logisticsToBring: [...(members[mIndex].logisticsToBring || []), { item: "", quantity: 1 }] };
+            updated[bIndex] = { ...updated[bIndex], members };
+            return updated;
+        });
     };
 
     const handleMemberCollabChange = (bIndex: number, mIndex: number, cIndex: number, field: keyof CollabItem, value: any) => {
-        const updated = [...blocks];
-        updated[bIndex].members[mIndex].logisticsToBring[cIndex] = {
-            ...updated[bIndex].members[mIndex].logisticsToBring[cIndex],
-            [field]: value
-        };
-        setBlocks(updated);
+        setBlocks((prev) => {
+            const updated = [...prev];
+            const members = [...(updated[bIndex].members || [])];
+            const list = [...(members[mIndex].logisticsToBring || [])];
+            list[cIndex] = { ...list[cIndex], [field]: value };
+            members[mIndex] = { ...members[mIndex], logisticsToBring: list };
+            updated[bIndex] = { ...updated[bIndex], members };
+            return updated;
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -413,35 +444,35 @@ export default function AddParticipantsPage() {
         <div className="max-w-5xl mx-auto p-4 md:p-8 bg-slate-950 text-slate-100 min-h-screen mt-4 antialiased selection:bg-indigo-500/30 relative">
 
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-6 mb-8 gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-300/80 dark:border-slate-800 pb-6 mb-8 gap-4">
                 <div>
                     <span className="text-xs font-bold uppercase tracking-widest text-indigo-400">Logística Flexible</span>
                     <h1 className="text-3xl font-black tracking-tight text-white mt-1">Lote Dinámico de Asistencia</h1>
-                    <p className="text-slate-400 text-xs md:text-sm mt-1.5">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mt-1.5">
                         Registra personas o colectivos asignando presupuestos y checklist de items.
                     </p>
                 </div>
                 <button
                     type="button"
                     onClick={() => router.push(`/events/${eventId}`)}
-                    className="px-4 py-2 text-xs font-bold bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition-all text-slate-300 active:scale-95 shrink-0"
+                    className="px-4 py-2 text-xs font-bold bg-slate-100 border border-slate-300 rounded-xl hover:bg-slate-200 transition-all text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300 active:scale-95 shrink-0"
                 >
                     ← Volver al evento
                 </button>
             </div>
 
             {message.text && (
-                <div className={`p-4 mb-8 rounded-xl text-xs font-bold border backdrop-blur-md ${message.type === "success" ? "bg-emerald-950/40 text-emerald-400 border-emerald-500/30" : "bg-rose-950/40 text-rose-400 border-rose-500/30"
+                <div className={`p-4 mb-8 rounded-xl text-xs font-bold border backdrop-blur-md ${message.type === "success" ? "bg-emerald-50 text-emerald-700 border-emerald-300/60 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-500/30" : "bg-rose-50 text-rose-700 border-rose-300/60 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-500/30"
                     }`}>
                     {message.text}
                 </div>
             )}
 
             {/* Inserción Rápida */}
-            <div className="bg-slate-900/40 border border-slate-800/80 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 mb-6 shadow-xl">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Inyectar estructura al lote:</span>
+            <div className="bg-white/80 border border-slate-300/80 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 mb-6 shadow-sm dark:bg-slate-900/40 dark:border-slate-800/80 dark:shadow-xl">
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Inyectar estructura al lote:</span>
                 <div className="flex flex-wrap gap-3">
-                    <button type="button" onClick={() => handleAddBlock("individual")} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 text-slate-200 transition-all active:scale-95">
+                    <button type="button" onClick={() => handleAddBlock("individual")}                         className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-xl border border-slate-300 text-slate-700 transition-all active:scale-95 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-700 dark:text-slate-200">
                         + Persona Individual
                     </button>
                     <button type="button" onClick={() => handleAddBlock("group")} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-xs font-bold rounded-xl text-white transition-all shadow-lg active:scale-95">
@@ -461,7 +492,7 @@ export default function AddParticipantsPage() {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={csvImporting}
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-dashed border-slate-600 text-slate-200 transition-all active:scale-95 disabled:opacity-50"
+                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-xl border border-dashed border-slate-400 text-slate-700 transition-all active:scale-95 disabled:opacity-50 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
                     >
                         {csvImporting ? "Importando..." : "📄 Importar CSV"}
                     </button>
@@ -476,7 +507,7 @@ export default function AddParticipantsPage() {
             </div>
 
             {csvPendingAi && (
-                <div className="p-4 mb-6 rounded-xl text-xs border border-amber-500/30 bg-amber-950/30 text-amber-300 flex flex-wrap items-center justify-between gap-3">
+                <div className="p-4 mb-6 rounded-xl text-xs border border-amber-500/30 bg-amber-50 text-amber-800 flex flex-wrap items-center justify-between gap-3 dark:bg-amber-950/30 dark:text-amber-300">
                     <span className="font-semibold">
                         No reconocí automáticamente las columnas de ese CSV (le falta a la columna de nombre calzar con algo esperado).
                         ¿Querés que la IA intente interpretarlas? Solo le mando los nombres de columna, nunca los datos de las personas.
@@ -486,14 +517,14 @@ export default function AddParticipantsPage() {
                             type="button"
                             onClick={handleAiAssistedCsvImport}
                             disabled={csvImporting}
-                            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-lg transition-all active:scale-95 disabled:opacity-50"
+                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded-lg transition-all active:scale-95 disabled:opacity-50 dark:bg-amber-600 dark:hover:bg-amber-500 dark:text-slate-950"
                         >
                             {csvImporting ? "Interpretando..." : "Usar IA para interpretar"}
                         </button>
                         <button
                             type="button"
                             onClick={() => setCsvPendingAi(null)}
-                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg transition-all active:scale-95"
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-all active:scale-95 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
                         >
                             Cancelar
                         </button>
@@ -526,10 +557,17 @@ export default function AddParticipantsPage() {
                                     <select
                                         value={block.contactType || "email"}
                                         onChange={(e) => {
-                                            const t = e.target.value as any;
-                                            handleBlockChange(bIndex, "contactType", t);
-                                            if (t === "email") handleBlockChange(bIndex, "contactPhone", "");
-                                            if (t === "phone") handleBlockChange(bIndex, "contactEmail", "");
+                                            const t = e.target.value as "email" | "phone" | "none";
+                                            setBlocks((prev) => {
+                                                const updated = [...prev];
+                                                updated[bIndex] = {
+                                                    ...updated[bIndex],
+                                                    contactType: t,
+                                                    contactPhone: t === "email" ? "" : updated[bIndex].contactPhone,
+                                                    contactEmail: t === "phone" ? "" : updated[bIndex].contactEmail,
+                                                };
+                                                return updated;
+                                            });
                                         }}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white"
                                     >
@@ -591,11 +629,21 @@ export default function AddParticipantsPage() {
                                                         <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Contacto</label>
                                                         <select
                                                             value={member.contactType || (member.email ? "email" : "none")}
-                                                            onChange={(e) => {
-                                                                const t = e.target.value as any;
-                                                                handleMemberChange(bIndex, mIndex, "contactType", t);
-                                                                if (t === "phone") handleMemberChange(bIndex, mIndex, "email", "");
-                                                            }}
+                                                                onChange={(e) => {
+                                                                    const t = e.target.value as "email" | "phone" | "none";
+                                                                    setBlocks((prev) => {
+                                                                        const updated = [...prev];
+                                                                        const members = [...(updated[bIndex].members || [])];
+                                                                        members[mIndex] = {
+                                                                            ...members[mIndex],
+                                                                            contactType: t,
+                                                                            contactPhone: t === "email" ? "" : members[mIndex].contactPhone,
+                                                                            email: t === "phone" ? "" : members[mIndex].email,
+                                                                        };
+                                                                        updated[bIndex] = { ...updated[bIndex], members };
+                                                                        return updated;
+                                                                    });
+                                                                }}
                                                             className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
                                                         >
                                                             <option value="email">Correo</option>
