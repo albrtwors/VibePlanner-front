@@ -41,6 +41,21 @@ interface EventDetail {
     participants?: any[];
 }
 
+interface PaymentSubmission {
+    id: number;
+    token: string;
+    participant_id: number | null;
+    participant_name: string | null;
+    participant_email: string | null;
+    amount: number;
+    status: "pending" | "submitted" | "approved" | "rejected";
+    payment_reference?: string | null;
+    screenshot_url: string | null;
+    requested_at: string | null;
+    uploaded_at: string | null;
+    reviewed_at: string | null;
+}
+
 interface PageProps {
     params: Promise<{ id: string }>;
 }
@@ -52,11 +67,15 @@ export default function EventDetailPagePage({ params }: PageProps) {
     const [event, setEvent] = useState<EventDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [payments, setPayments] = useState<PaymentSubmission[]>([]);
+    const [sendingPayments, setSendingPayments] = useState(false);
+    const [reviewingPaymentId, setReviewingPaymentId] = useState<number | null>(null);
 
     // Cargar asistencia y editar el plan son cosas de organización (events.edit).
     const { can } = useClientPermissions();
     const canManageEvent = can("events.edit");
     const canExportEvent = can("events.export") || can("events.edit");
+    const canManagePayments = can("events.payments");
 
     useEffect(() => {
         setMounted(true);
@@ -75,6 +94,15 @@ export default function EventDetailPagePage({ params }: PageProps) {
             .finally(() => setLoading(false));
     }, [id, router]);
 
+    // El panel de pagos y aportes se refresca cuando se abre el evento.
+    useEffect(() => {
+        if (!id) return;
+        fetch(apiUrl(`/api/events/${id}/payments`))
+            .then((res) => (res.ok ? res.json() : Promise.reject()))
+            .then((data) => setPayments(Array.isArray(data) ? data : []))
+            .catch(() => setPayments([]));
+    }, [id]);
+
     const formattedDate = mounted && event
         ? new Date(event.date + "T00:00:00").toLocaleDateString("es-ES", {
             weekday: "long",
@@ -83,6 +111,62 @@ export default function EventDetailPagePage({ params }: PageProps) {
             year: "numeric",
         })
         : event?.date || "";
+
+    const refreshPayments = async () => {
+        try {
+            const res = await fetch(apiUrl(`/api/events/${id}/payments`));
+            const data = await res.json();
+            setPayments(Array.isArray(data) ? data : []);
+        } catch {
+            setPayments([]);
+        }
+    };
+
+    const handleSendPaymentRequests = async () => {
+        const eligible = (event?.participants || []).filter(
+            (p: { monetary_contribution?: number; email?: string; contact_value?: string; id: number }) =>
+                Number(p?.monetary_contribution || 0) > 0 && !!(p?.email || p?.contact_value)
+        );
+        if (eligible.length === 0) {
+            notify.error("No hay participantes con aporte definido para enviar solicitudes de pago.");
+            return;
+        }
+        setSendingPayments(true);
+        try {
+            const res = await fetch(apiUrl(`/api/events/${id}/payments/send`), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ participant_ids: eligible.map((p) => p.id) }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "No se pudieron enviar las solicitudes de pago.");
+            notify.success(`Se generaron ${data.sent || 0} solicitudes de pago.`);
+            await refreshPayments();
+        } catch (err) {
+            notify.error(err instanceof Error ? err.message : "Error al enviar solicitudes de pago.");
+        } finally {
+            setSendingPayments(false);
+        }
+    };
+
+    const handleReviewPayment = async (paymentId: number, action: "approve" | "reject") => {
+        setReviewingPaymentId(paymentId);
+        try {
+            const res = await fetch(apiUrl(`/api/events/${id}/payments/${paymentId}/review`), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "No se pudo registrar la revisión del pago.");
+            notify.success(action === "approve" ? "Pago aprobado correctamente." : "Pago rechazado.");
+            await refreshPayments();
+        } catch (err) {
+            notify.error(err instanceof Error ? err.message : "Error al revisar el pago.");
+        } finally {
+            setReviewingPaymentId(null);
+        }
+    };
 
     if (loading) {
         return (
@@ -259,6 +343,83 @@ export default function EventDetailPagePage({ params }: PageProps) {
                             </div>
                         )}
                     </div>
+
+                {/* GESTIÓN DE PAGOS Y APODOS */}
+                {canManagePayments && (
+                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-xl shadow-black/10">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-200">💰 Pagos y Aportes</h3>
+                        <button
+                            onClick={handleSendPaymentRequests}
+                            disabled={sendingPayments}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95"
+                        >
+                            {sendingPayments ? "Enviando..." : "💸 Enviar Solicitudes de Pago"}
+                        </button>
+
+                        <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
+                            {(payments || []).length === 0 ? (
+                                <p className="text-[11px] font-bold text-slate-500 text-center py-3 bg-slate-950/40 border border-dashed border-slate-800 rounded-lg uppercase tracking-wider">
+                                    Sin solicitudes de pago registradas.
+                                </p>
+                            ) : (
+                                payments.map((p) => {
+                                    const statusColors: Record<string, string> = {
+                                        pending: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+                                        submitted: "bg-indigo-500/15 text-indigo-400 border-indigo-500/30",
+                                        approved: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+                                        rejected: "bg-rose-500/15 text-rose-400 border-rose-500/30",
+                                    };
+                                    const statusColor = statusColors[p.status] || statusColors.pending;
+                                    return (
+                                        <div key={p.id} className="bg-slate-950 border border-slate-800 px-3 py-2.5 rounded-lg flex flex-col gap-2">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="text-xs font-bold text-slate-200 truncate">{p.participant_name || "Participante"}</span>
+                                                <span className="font-mono font-bold text-emerald-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-[10px] shrink-0">
+                                                    ${Number(p.amount || 0).toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${statusColor}`}>
+                                                    {p.status}
+                                                </span>
+                                                <span className="text-[9px] text-slate-500 truncate">{p.participant_email}</span>
+                                            </div>
+                                            {p.payment_reference && (
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Referencia</span>
+                                                    <span className="text-[9px] font-mono font-bold text-slate-300 truncate">{p.payment_reference}</span>
+                                                </div>
+                                            )}
+                                            {p.screenshot_url && (
+                                                <a href={p.screenshot_url.startsWith("http") ? p.screenshot_url : apiUrl(p.screenshot_url)} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-400 underline">
+                                                    Ver comprobante
+                                                </a>
+                                            )}
+                                            {p.status === "submitted" && (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleReviewPayment(p.id, "approve")}
+                                                        disabled={reviewingPaymentId === p.id}
+                                                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all active:scale-95 disabled:opacity-50"
+                                                    >
+                                                        Aprobar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReviewPayment(p.id, "reject")}
+                                                        disabled={reviewingPaymentId === p.id}
+                                                        className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all active:scale-95 disabled:opacity-50"
+                                                    >
+                                                        Rechazar
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 </div>
             </div>

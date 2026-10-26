@@ -47,38 +47,38 @@ interface ParticipantBlock {
 function normalizeBlocks(rawBlocks: any[]): ParticipantBlock[] {
     if (!Array.isArray(rawBlocks)) return [];
 
-        const normalizeCollab = (list: any[]): CollabItem[] => {
-            const cleaned = (Array.isArray(list) ? list : [])
-                .filter((it) => it && typeof it.item === "string")
-                .map((it) => ({ item: it.item, quantity: Number(it.quantity) || 1 }));
-            return cleaned.length > 0 ? cleaned : [{ item: "", quantity: 1 }];
-        };
+    const normalizeCollab = (list: any[]): CollabItem[] => {
+        const cleaned = (Array.isArray(list) ? list : [])
+            .filter((it) => it && typeof it.item === "string")
+            .map((it) => ({ item: it.item, quantity: Number(it.quantity) || 1 }));
+        return cleaned.length > 0 ? cleaned : [{ item: "", quantity: 1 }];
+    };
 
-        return rawBlocks
-            .filter((b) => b && typeof b.displayName === "string")
-            .map((b) => ({
-                type: b.type === "group" ? "group" : "individual",
-                displayName: b.displayName || "",
-                contactEmail: b.contactEmail || b.contactValue || "",
-                contactType: b.contactType || (b.contactEmail || b.contactValue ? "email" : "none"),
-                contactValue: b.contactValue || b.contactEmail || b.contactPhone || "",
-                contactPhone: b.contactPhone || "",
-                monetaryContribution: Number(b.monetaryContribution) || 0,
-                logisticsToBring: normalizeCollab(b.logisticsToBring),
-                members: b.type === "group"
-                    ? (Array.isArray(b.members) ? b.members : [])
-                        .filter((m: any) => m && typeof m.name === "string")
-                        .map((m: any) => ({
-                            name: m.name,
-                            email: m.email || m.contactValue || "",
-                            contactType: m.contactType || (m.email || m.contactValue ? "email" : "none"),
-                            contactValue: m.contactValue || m.email || m.contactPhone || "",
-                            contactPhone: m.contactPhone || "",
-                            monetaryContribution: Number(m.monetaryContribution) || 0,
-                            logisticsToBring: normalizeCollab(m.logisticsToBring),
-                        }))
-                    : [],
-            }));
+    return rawBlocks
+        .filter((b) => b && typeof b.displayName === "string")
+        .map((b) => ({
+            type: b.type === "group" ? "group" : "individual",
+            displayName: b.displayName || "",
+            contactEmail: b.contactEmail || b.contactValue || "",
+            contactType: b.contactType || (b.contactEmail || b.contactValue ? "email" : "none"),
+            contactValue: b.contactValue || b.contactEmail || b.contactPhone || "",
+            contactPhone: b.contactPhone || "",
+            monetaryContribution: Number(b.monetaryContribution) || 0,
+            logisticsToBring: normalizeCollab(b.logisticsToBring),
+            members: b.type === "group"
+                ? (Array.isArray(b.members) ? b.members : [])
+                    .filter((m: any) => m && typeof m.name === "string")
+                    .map((m: any) => ({
+                        name: m.name,
+                        email: m.email || m.contactValue || "",
+                        contactType: m.contactType || (m.email || m.contactValue ? "email" : "none"),
+                        contactValue: m.contactValue || m.email || m.contactPhone || "",
+                        contactPhone: m.contactPhone || "",
+                        monetaryContribution: Number(m.monetaryContribution) || 0,
+                        logisticsToBring: normalizeCollab(m.logisticsToBring),
+                    }))
+                : [],
+        }));
 }
 
 export default function AddParticipantsPage() {
@@ -116,35 +116,35 @@ export default function AddParticipantsPage() {
                 const fetchedBlocks: ParticipantBlock[] = [];
 
                 if (data.groups && data.groups.length > 0) {
-                data.groups.forEach((g: any) => {
-                    const groupMembers = (data.participants || [])
-                        .filter((p: any) => p.group_id === g.id)
-                        .map((p: any) => ({
-                            name: p.name,
-                            email: p.email || p.contact_value || "",
-                            contactType: p.contact_type || (p.email ? "email" : p.contact_phone ? "phone" : "none"),
-                            contactValue: p.contact_value || p.email || p.contact_phone || "",
-                            contactPhone: p.contact_phone || "",
-                            monetaryContribution: p.monetary_contribution || 0,
-                            logisticsToBring: p.logistics_to_bring && p.logistics_to_bring.length > 0
-                                ? p.logistics_to_bring.map((l: any) => ({ item: l.item, quantity: l.quantity }))
-                                : [{ item: "", quantity: 1 }]
-                        }));
+                    data.groups.forEach((g: any) => {
+                        const groupMembers = (data.participants || [])
+                            .filter((p: any) => p.group_id === g.id)
+                            .map((p: any) => ({
+                                name: p.name,
+                                email: p.email || p.contact_value || "",
+                                contactType: p.contact_type || (p.email ? "email" : p.contact_phone ? "phone" : "none"),
+                                contactValue: p.contact_value || p.email || p.contact_phone || "",
+                                contactPhone: p.contact_phone || "",
+                                monetaryContribution: p.monetary_contribution || 0,
+                                logisticsToBring: p.logistics_to_bring && p.logistics_to_bring.length > 0
+                                    ? p.logistics_to_bring.map((l: any) => ({ item: l.item, quantity: l.quantity }))
+                                    : [{ item: "", quantity: 1 }]
+                            }));
 
-                    fetchedBlocks.push({
-                        type: "group",
-                        displayName: g.name,
-                        contactEmail: "",
-                        contactType: "none",
-                        contactValue: "",
-                        contactPhone: "",
-                        monetaryContribution: g.monetary_contribution || 0,
-                        logisticsToBring: g.logistics_to_bring && g.logistics_to_bring.length > 0
-                            ? g.logistics_to_bring.map((l: any) => ({ item: l.item, quantity: l.quantity }))
-                            : [{ item: "", quantity: 1 }],
-                        members: groupMembers
+                        fetchedBlocks.push({
+                            type: "group",
+                            displayName: g.name,
+                            contactEmail: "",
+                            contactType: "none",
+                            contactValue: "",
+                            contactPhone: "",
+                            monetaryContribution: g.monetary_contribution || 0,
+                            logisticsToBring: g.logistics_to_bring && g.logistics_to_bring.length > 0
+                                ? g.logistics_to_bring.map((l: any) => ({ item: l.item, quantity: l.quantity }))
+                                : [{ item: "", quantity: 1 }],
+                            members: groupMembers
+                        });
                     });
-                });
                 }
 
                 const individuals = (data.participants || []).filter((p: any) => p.group_id === null);
@@ -470,9 +470,9 @@ export default function AddParticipantsPage() {
 
             {/* Inserción Rápida */}
             <div className="bg-white/80 border border-slate-300/80 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 mb-6 shadow-sm dark:bg-slate-900/40 dark:border-slate-800/80 dark:shadow-xl">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Inyectar estructura al lote:</span>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Inyectar estructura al lote:</span>
                 <div className="flex flex-wrap gap-3">
-                    <button type="button" onClick={() => handleAddBlock("individual")}                         className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-xl border border-slate-300 text-slate-700 transition-all active:scale-95 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-700 dark:text-slate-200">
+                    <button type="button" onClick={() => handleAddBlock("individual")} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-xl border border-slate-300 text-slate-700 transition-all active:scale-95 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-700 dark:text-slate-200">
                         + Persona Individual
                     </button>
                     <button type="button" onClick={() => handleAddBlock("group")} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-xs font-bold rounded-xl text-white transition-all shadow-lg active:scale-95">
@@ -536,24 +536,24 @@ export default function AddParticipantsPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-6">
                     {blocks.map((block, bIndex) => (
-                        <div key={bIndex} className={`p-6 rounded-2xl border shadow-xl relative transition-all bg-gradient-to-b from-slate-900 to-slate-950 ${block.type === "group" ? "border-indigo-500/40" : "border-slate-800"}`}>
+                        <div key={bIndex} className={`p-6 rounded-2xl border shadow-xl relative transition-all bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950 ${block.type === "group" ? "border-indigo-500/40" : "border-slate-300 dark:border-slate-800"}`}>
 
-                            <div className={`absolute -top-2.5 left-4 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest shadow-md ${block.type === 'group' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300'}`}>
+                            <div className={`absolute -top-2.5 left-4 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest shadow-md ${block.type === 'group' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
                                 {block.type === "group" ? "👥 Bloque Colectivo" : "👤 Individual Fijo"}
                             </div>
 
                             {blocks.length > 1 && (
-                                <button type="button" onClick={() => handleRemoveBlock(bIndex)} className="absolute top-4 right-4 text-xs font-bold text-slate-500 hover:text-rose-400">✕ Quitar</button>
+                                <button type="button" onClick={() => handleRemoveBlock(bIndex)} className="absolute top-4 right-4 text-xs font-bold text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400">✕ Quitar</button>
                             )}
 
                             {/* Datos Base */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2 mb-4">
                                 <div>
-                                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">{block.type === "group" ? "Nombre de la Mesa / Colectivo *" : "Nombre Completo *"}</label>
-                                    <input type="text" required value={block.displayName} onChange={(e) => handleBlockChange(bIndex, "displayName", e.target.value)} placeholder={block.type === "group" ? "Ej: Protocolo, Familia Pérez" : "Ej: Juan Soto"} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white" />
+                                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">{block.type === "group" ? "Nombre de la Mesa / Colectivo *" : "Nombre Completo *"}</label>
+                                    <input type="text" required value={block.displayName} onChange={(e) => handleBlockChange(bIndex, "displayName", e.target.value)} placeholder={block.type === "group" ? "Ej: Protocolo, Familia Pérez" : "Ej: Juan Soto"} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white" />
                                 </div>
                                 <div className="col-span-1 md:col-span-2">
-                                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Contacto</label>
+                                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Contacto</label>
                                     <select
                                         value={block.contactType || "email"}
                                         onChange={(e) => {
@@ -569,38 +569,38 @@ export default function AddParticipantsPage() {
                                                 return updated;
                                             });
                                         }}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white"
+                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
                                     >
                                         <option value="email">Correo</option>
                                         <option value="phone">Teléfono</option>
                                         <option value="none">No aplica</option>
                                     </select>
                                     {block.contactType === "email" && (
-                                        <input type="email" value={block.contactValue || block.contactEmail || ""} onChange={(e) => { handleBlockChange(bIndex, "contactValue", e.target.value); handleBlockChange(bIndex, "contactEmail", e.target.value); }} placeholder="correo@ejemplo.com" className="mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white" />
+                                        <input type="email" value={block.contactValue || block.contactEmail || ""} onChange={(e) => { handleBlockChange(bIndex, "contactValue", e.target.value); handleBlockChange(bIndex, "contactEmail", e.target.value); }} placeholder="correo@ejemplo.com" className="mt-2 w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white" />
                                     )}
                                     {block.contactType === "phone" && (
-                                        <input type="tel" value={block.contactValue || block.contactPhone || ""} onChange={(e) => { handleBlockChange(bIndex, "contactValue", e.target.value); handleBlockChange(bIndex, "contactPhone", e.target.value); }} placeholder="+56 9 1234 5678" className="mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white" />
+                                        <input type="tel" value={block.contactValue || block.contactPhone || ""} onChange={(e) => { handleBlockChange(bIndex, "contactValue", e.target.value); handleBlockChange(bIndex, "contactPhone", e.target.value); }} placeholder="+56 9 1234 5678" className="mt-2 w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white" />
                                     )}
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] font-bold uppercase tracking-wider text-indigo-400 mb-1.5">{block.type === "group" ? "Fondo Financiero Grupal ($)" : "Aporte Monetario Individual ($)"}</label>
-                                    <input type="number" min="0" step="0.01" value={block.monetaryContribution} onChange={(e) => handleBlockChange(bIndex, "monetaryContribution", parseFloat(e.target.value) || 0)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-emerald-400 font-mono font-bold" />
+                                    <label className="block text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1.5">{block.type === "group" ? "Fondo Financiero Grupal ($)" : "Aporte Monetario Individual ($)"}</label>
+                                    <input type="number" min="0" step="0.01" value={block.monetaryContribution} onChange={(e) => handleBlockChange(bIndex, "monetaryContribution", parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-emerald-600 dark:text-emerald-400 font-mono font-bold" />
                                 </div>
                             </div>
 
                             {/* Logística Base */}
-                            <div className="border-t border-slate-800/80 pt-4 mt-2">
+                            <div className="border-t border-slate-200 dark:border-slate-800/80 pt-4 mt-2">
                                 <div className="flex justify-between items-center mb-3">
                                     <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Insumos Generales del Bloque</span>
-                                    <button type="button" onClick={() => handleAddCollabRow(bIndex)} className="text-xs text-indigo-400 font-bold">+ Agregar Item</button>
+                                    <button type="button" onClick={() => handleAddCollabRow(bIndex)} className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">+ Agregar Item</button>
                                 </div>
                                 <div className="space-y-2">
                                     {block.logisticsToBring.map((collab, cIndex) => (
                                         <div key={cIndex} className="flex space-x-2 items-center">
-                                            <input type="text" value={collab.item} onChange={(e) => handleCollabChange(bIndex, cIndex, "item", e.target.value)} placeholder="Descripción del recurso..." className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 text-slate-300" />
-                                            <input type="number" min="1" value={collab.quantity} onChange={(e) => handleCollabChange(bIndex, cIndex, "quantity", parseInt(e.target.value) || 1)} className="w-20 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-center text-indigo-400 font-mono font-bold" />
+                                            <input type="text" value={collab.item} onChange={(e) => handleCollabChange(bIndex, cIndex, "item", e.target.value)} placeholder="Descripción del recurso..." className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-300" />
+                                            <input type="number" min="1" value={collab.quantity} onChange={(e) => handleCollabChange(bIndex, cIndex, "quantity", parseInt(e.target.value) || 1)} className="w-20 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-center text-indigo-600 dark:text-indigo-400 font-mono font-bold" />
                                             {block.logisticsToBring.length > 1 && (
-                                                <button type="button" onClick={() => handleRemoveCollabRow(bIndex, cIndex)} className="text-xs text-slate-600 hover:text-rose-400 px-2">✕</button>
+                                                <button type="button" onClick={() => handleRemoveCollabRow(bIndex, cIndex)} className="text-xs text-slate-400 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 px-2">✕</button>
                                             )}
                                         </div>
                                     ))}
@@ -609,69 +609,69 @@ export default function AddParticipantsPage() {
 
                             {/* Integrantes Colectivos */}
                             {block.type === "group" && (
-                                <div className="border-t border-slate-800/80 pt-6 mt-6 bg-slate-950/40 p-4 rounded-xl border border-dashed border-slate-800">
+                                <div className="border-t border-slate-200 dark:border-slate-800/80 pt-6 mt-6 bg-slate-50 dark:bg-slate-950/40 p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-800">
                                     <div className="flex justify-between items-center mb-4">
-                                        <span className="text-xs font-black uppercase tracking-widest text-indigo-400">👤 Integrantes del Colectivo</span>
-                                        <button type="button" onClick={() => handleAddMember(bIndex)} className="px-3 py-1 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-[11px] font-bold rounded-lg text-slate-300 transition-colors">+ Añadir Integrante</button>
+                                        <span className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">👤 Integrantes del Colectivo</span>
+                                        <button type="button" onClick={() => handleAddMember(bIndex)} className="px-3 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold rounded-lg text-slate-700 dark:text-slate-300 transition-colors">+ Añadir Integrante</button>
                                     </div>
 
                                     <div className="space-y-4">
                                         {block.members.map((member, mIndex) => (
-                                            <div key={mIndex} className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 relative">
-                                                <button type="button" onClick={() => handleRemoveMember(bIndex, mIndex)} className="absolute top-3 right-3 text-[10px] text-slate-600 hover:text-rose-400 font-bold">✕ Quitar</button>
+                                            <div key={mIndex} className="bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800/80 relative shadow-sm">
+                                                <button type="button" onClick={() => handleRemoveMember(bIndex, mIndex)} className="absolute top-3 right-3 text-[10px] text-slate-400 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 font-bold">✕ Quitar</button>
 
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                                                     <div>
                                                         <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Nombre Completo *</label>
-                                                        <input type="text" required value={member.name} onChange={(e) => handleMemberChange(bIndex, mIndex, "name", e.target.value)} placeholder="Nombre del miembro" className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+                                                        <input type="text" required value={member.name} onChange={(e) => handleMemberChange(bIndex, mIndex, "name", e.target.value)} placeholder="Nombre del miembro" className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" />
                                                     </div>
                                                     <div>
                                                         <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Contacto</label>
                                                         <select
                                                             value={member.contactType || (member.email ? "email" : "none")}
-                                                                onChange={(e) => {
-                                                                    const t = e.target.value as "email" | "phone" | "none";
-                                                                    setBlocks((prev) => {
-                                                                        const updated = [...prev];
-                                                                        const members = [...(updated[bIndex].members || [])];
-                                                                        members[mIndex] = {
-                                                                            ...members[mIndex],
-                                                                            contactType: t,
-                                                                            contactPhone: t === "email" ? "" : members[mIndex].contactPhone,
-                                                                            email: t === "phone" ? "" : members[mIndex].email,
-                                                                        };
-                                                                        updated[bIndex] = { ...updated[bIndex], members };
-                                                                        return updated;
-                                                                    });
-                                                                }}
-                                                            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                                                            onChange={(e) => {
+                                                                const t = e.target.value as "email" | "phone" | "none";
+                                                                setBlocks((prev) => {
+                                                                    const updated = [...prev];
+                                                                    const members = [...(updated[bIndex].members || [])];
+                                                                    members[mIndex] = {
+                                                                        ...members[mIndex],
+                                                                        contactType: t,
+                                                                        contactPhone: t === "email" ? "" : members[mIndex].contactPhone,
+                                                                        email: t === "phone" ? "" : members[mIndex].email,
+                                                                    };
+                                                                    updated[bIndex] = { ...updated[bIndex], members };
+                                                                    return updated;
+                                                                });
+                                                            }}
+                                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white"
                                                         >
                                                             <option value="email">Correo</option>
                                                             <option value="phone">Teléfono</option>
                                                             <option value="none">No aplica</option>
                                                         </select>
                                                         {member.contactType === "email" && (
-                                                            <input type="email" value={member.contactValue || member.email || ""} onChange={(e) => { handleMemberChange(bIndex, mIndex, "contactValue", e.target.value); handleMemberChange(bIndex, mIndex, "email", e.target.value); }} placeholder="miembro@correo.com" className="mt-1.5 w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+                                                            <input type="email" value={member.contactValue || member.email || ""} onChange={(e) => { handleMemberChange(bIndex, mIndex, "contactValue", e.target.value); handleMemberChange(bIndex, mIndex, "email", e.target.value); }} placeholder="miembro@correo.com" className="mt-1.5 w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" />
                                                         )}
                                                         {member.contactType === "phone" && (
-                                                            <input type="tel" value={member.contactValue || member.contactPhone || ""} onChange={(e) => { handleMemberChange(bIndex, mIndex, "contactValue", e.target.value); handleMemberChange(bIndex, mIndex, "contactPhone", e.target.value); }} placeholder="+56..." className="mt-1.5 w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+                                                            <input type="tel" value={member.contactValue || member.contactPhone || ""} onChange={(e) => { handleMemberChange(bIndex, mIndex, "contactValue", e.target.value); handleMemberChange(bIndex, mIndex, "contactPhone", e.target.value); }} placeholder="+56..." className="mt-1.5 w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" />
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <label className="block text-[10px] uppercase font-bold text-indigo-400 mb-1">Aporte Propio ($)</label>
-                                                        <input type="number" min="0" step="0.01" value={member.monetaryContribution} onChange={(e) => handleMemberChange(bIndex, mIndex, "monetaryContribution", parseFloat(e.target.value) || 0)} className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-emerald-400 font-mono font-bold" />
+                                                        <label className="block text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 mb-1">Aporte Propio ($)</label>
+                                                        <input type="number" min="0" step="0.01" value={member.monetaryContribution} onChange={(e) => handleMemberChange(bIndex, mIndex, "monetaryContribution", parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-mono font-bold" />
                                                     </div>
                                                 </div>
 
                                                 <div className="pt-2">
                                                     <div className="flex justify-between items-center mb-2">
                                                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Items de este Miembro</span>
-                                                        <button type="button" onClick={() => handleAddMemberCollab(bIndex, mIndex)} className="text-[10px] text-indigo-400 font-bold">+ Registrar Insumo</button>
+                                                        <button type="button" onClick={() => handleAddMemberCollab(bIndex, mIndex)} className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">+ Registrar Insumo</button>
                                                     </div>
                                                     {member.logisticsToBring.map((mCollab, mcIndex) => (
                                                         <div key={mcIndex} className="flex space-x-2 items-center mb-1.5">
-                                                            <input type="text" value={mCollab.item} onChange={(e) => handleMemberCollabChange(bIndex, mIndex, mcIndex, "item", e.target.value)} placeholder="Ej: Cables, Laptop..." className="flex-1 bg-slate-900 border border-slate-800 rounded-md px-2.5 py-1 text-xs text-slate-300" />
-                                                            <input type="number" min="1" value={mCollab.quantity} onChange={(e) => handleMemberCollabChange(bIndex, mIndex, mcIndex, "quantity", parseInt(e.target.value) || 1)} className="w-16 bg-slate-900 border border-slate-800 rounded-md px-2 py-1 text-xs text-center text-indigo-400 font-mono" />
+                                                            <input type="text" value={mCollab.item} onChange={(e) => handleMemberCollabChange(bIndex, mIndex, mcIndex, "item", e.target.value)} placeholder="Ej: Cables, Laptop..." className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2.5 py-1 text-xs text-slate-700 dark:text-slate-300" />
+                                                            <input type="number" min="1" value={mCollab.quantity} onChange={(e) => handleMemberCollabChange(bIndex, mIndex, mcIndex, "quantity", parseInt(e.target.value) || 1)} className="w-16 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2 py-1 text-xs text-center text-indigo-600 dark:text-indigo-400 font-mono" />
                                                         </div>
                                                     ))}
                                                 </div>
@@ -685,7 +685,7 @@ export default function AddParticipantsPage() {
                     ))}
                 </div>
 
-                <div className="flex justify-end border-t border-slate-800/80 pt-6">
+                <div className="flex justify-end border-t border-slate-200 dark:border-slate-800/80 pt-6">
                     <button type="submit" disabled={loading} className="px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 font-black text-xs rounded-xl uppercase tracking-widest text-white shadow-lg transition-all active:scale-95 disabled:bg-slate-900">
                         {loading ? "Sincronizando Payload..." : "Confirmar e Inyectar Asistentes"}
                     </button>

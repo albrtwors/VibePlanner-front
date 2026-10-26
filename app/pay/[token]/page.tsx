@@ -5,37 +5,78 @@ import { useParams } from "next/navigation";
 import { apiUrl } from "@/consts/backEndpoint";
 import { notify } from "@/utils/toast";
 
+interface PaymentEvent {
+    id: number | null;
+    name: string | null;
+    date: string | null;
+    time: string | null;
+}
+
+interface PaymentData {
+    token: string;
+    status: string;
+    amount: number;
+    participant_name: string | null;
+    participant_email: string | null;
+    payment_reference?: string | null;
+    event: PaymentEvent | null;
+    screenshot_url: string | null;
+}
+
 export default function PaymentPage() {
     const params = useParams();
     const token = params?.token as string;
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<PaymentData | null>(null);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [file, setFile] = useState<File | null>(null);
+    const [reference, setReference] = useState("");
+    const [amount, setAmount] = useState("");
 
     useEffect(() => {
         if (!token) return;
         fetch(apiUrl(`/api/public/payments/${token}`))
             .then((r) => (r.ok ? r.json() : Promise.reject()))
-            .then((d) => setData(d))
+            .then((d) => {
+                setData(d);
+                setAmount(d?.amount != null ? String(d.amount) : "");
+            })
             .catch(() => notify.error("Enlace inválido o expirado"))
             .finally(() => setLoading(false));
     }, [token]);
 
-    const upload = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!file) return notify.error("Seleccioná una captura de pantalla");
+        if (!data) return;
         setUploading(true);
         try {
-            const fd = new FormData();
-            fd.append("file", file);
-            const res = await fetch(apiUrl(`/api/public/payments/${token}`), { method: "POST", body: fd });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || "Error al subir");
-            notify.success("Comprobante enviado correctamente");
-            setData((d: any) => ({ ...d, status: "submitted", screenshot_url: json.screenshot_url || d?.screenshot_url }));
-        } catch (err: any) {
-            notify.error(err.message);
+            if (file) {
+                const fd = new FormData();
+                fd.append("file", file);
+                const res = await fetch(apiUrl(`/api/public/payments/${token}`), { method: "POST", body: fd });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.error || "Error al subir");
+                notify.success("Comprobante enviado correctamente");
+                setData((d) => (d ? { ...d, status: "submitted", screenshot_url: json.screenshot_url || d.screenshot_url } : d));
+            } else {
+                const ref = reference.trim();
+                if (!ref) {
+                    notify.error("Completá la referencia de pago o subí un comprobante.");
+                    return;
+                }
+                const amountNum = parseFloat(amount);
+                const res = await fetch(apiUrl(`/api/public/payments/${token}`), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ payment_reference: ref, amount: isNaN(amountNum) ? data.amount : amountNum }),
+                });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.error || "Error al registrar la referencia");
+                notify.success("Referencia de pago registrada correctamente");
+                setData((d) => (d ? { ...d, status: "submitted", payment_reference: json.payment_reference || ref } : d));
+            }
+        } catch (err) {
+            notify.error(err instanceof Error ? err.message : "Error al enviar el comprobante.");
         } finally {
             setUploading(false);
         }
@@ -43,6 +84,8 @@ export default function PaymentPage() {
 
     if (loading) return <div className="min-h-screen flex items-center justify-center text-slate-400">Cargando...</div>;
     if (!data) return <div className="min-h-screen flex items-center justify-center text-slate-400">Enlace inválido o expirado</div>;
+
+    const canSubmit = data.status === "pending";
 
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center p-4">
@@ -54,15 +97,26 @@ export default function PaymentPage() {
                     <div className="flex justify-between"><span className="text-slate-500">Participante</span><span>{data.participant_name}</span></div>
                     <div className="flex justify-between"><span className="text-slate-500">Aporte</span><span className="font-bold text-emerald-600 dark:text-emerald-400">$ {Number(data.amount).toFixed(2)}</span></div>
                     <div className="flex justify-between"><span className="text-slate-500">Estado</span><span className="uppercase font-bold">{data.status}</span></div>
+                    {data.payment_reference && (
+                        <div className="flex justify-between"><span className="text-slate-500">Referencia</span><span className="font-mono text-xs">{data.payment_reference}</span></div>
+                    )}
                 </div>
                 {data.status === "approved" && <p className="mt-4 text-emerald-600 dark:text-emerald-400 font-bold">Pago aprobado</p>}
                 {data.status === "rejected" && <p className="mt-4 text-rose-600 dark:text-rose-400 font-bold">Pago rechazado. Contactá al administrador.</p>}
                 {data.status === "submitted" && <p className="mt-4 text-indigo-600 dark:text-indigo-400 font-bold">Comprobante enviado, pendiente de revisión.</p>}
-                {(data.status === "pending" || data.status === "rejected") && (
-                    <form onSubmit={upload} className="mt-6 space-y-3">
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-400">Captura de pantalla / comprobante</label>
+                {canSubmit && (
+                    <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-400">Captura de pantalla / comprobante (opcional)</label>
                         <input type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} className="w-full text-sm" />
-                        <button disabled={uploading || !file} className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold disabled:opacity-50">{uploading ? "Enviando..." : "Enviar comprobante"}</button>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Referencia de pago móvil (opcional)</label>
+                            <input type="text" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Ej: NRO. DE OPERACIÓN / VOUCHER" className="w-full bg-white/60 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Monto abonado (opcional)</label>
+                            <input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-white/60 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+                        </div>
+                        <button disabled={uploading || (!file && !reference.trim())} className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold disabled:opacity-50">{uploading ? "Enviando..." : "Enviar comprobante / referencia"}</button>
                     </form>
                 )}
                 {data.screenshot_url && (
